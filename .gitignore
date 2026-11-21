@@ -1,0 +1,18 @@
+# зависимости (восстанавливаются командой npm install)
+node_modules/
+
+# результат сборки Next.js (генерируется автоматически)
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# секреты и локальные настройки
+.env
+.env.*
+.vscode/
+
+# мусор ОС и выгрузки ИИ
+.DS_Store
+Thumbs.db
+Claude outputs/
