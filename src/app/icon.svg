@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bitlynnBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="100%" stop-color="#050914" />
+    </linearGradient>
+    <linearGradient id="fluidBitGrad" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="58%" stop-color="#4FACFE" />
+      <stop offset="100%" stop-color="#FF6AD5" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bitlynnBg)" />
+  <rect x="2" y="2" width="60" height="60" rx="14" stroke="url(#fluidBitGrad)" stroke-opacity="0.35" stroke-width="2" />
+  <path
+    d="M32 8 C32 8 50 26.5 50 39 C50 48.941 41.941 57 32 57 C22.059 57 14 48.941 14 39 C14 26.5 32 8 32 8 Z"
+    fill="url(#fluidBitGrad)"
+    fill-opacity="0.22"
+    stroke="url(#fluidBitGrad)"
+    stroke-width="3.5"
+    stroke-linejoin="round"
+  />
+  <polygon points="32,23 42,36 32,49 22,36" fill="url(#fluidBitGrad)" />
+</svg>
