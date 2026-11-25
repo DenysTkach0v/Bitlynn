@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Rubik, JetBrains_Mono, Pixelify_Sans } from "next/font/google";
+import { Manrope, Rubik, JetBrains_Mono, Pixelify_Sans, Inter } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -17,6 +17,13 @@ const rubik = Rubik({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin", "cyrillic"],
   variable: "--font-mono",
+  display: "swap",
+});
+
+// Bitlynn 4.0 UI face: everything a child reads (questions, answers, buttons)
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -50,7 +57,7 @@ export default function RootLayout({
     <html
       lang="uk"
       suppressHydrationWarning
-      className={`${manrope.variable} ${rubik.variable} ${jetbrainsMono.variable} ${pixelify.variable} dark`}
+      className={`${manrope.variable} ${rubik.variable} ${jetbrainsMono.variable} ${pixelify.variable} ${inter.variable} dark`}
     >
       <body
         suppressHydrationWarning

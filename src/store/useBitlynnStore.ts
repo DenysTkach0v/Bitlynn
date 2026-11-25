@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export type AppView =
   | "home"
+  | "arcade"
   | "play-hangman"
   | "play-mutator"
   | "cyber-crew"

@@ -13,6 +13,7 @@ import { CyberCrewCanvasGame } from "@/components/crew/CyberCrewCanvasGame";
 import { PeerHelpExchange } from "@/components/PeerHelpExchange";
 import { TeacherTemplateHub } from "@/components/TeacherTemplateHub";
 import { SanctumHub } from "@/components/SanctumHub";
+import { ArcadeApp } from "@/components/arcade/ArcadeApp";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useBitlynnStore } from "@/store/useBitlynnStore";
 
@@ -25,7 +26,7 @@ const VIEW_TRANSITION = {
 
 export default function BitlynnAppPage() {
   const hydrated = useHydrated();
-  const { activeTab, sanctumSection } = useBitlynnStore();
+  const { activeTab, sanctumSection, setActiveTab } = useBitlynnStore();
   const [classroomSheetOpen, setClassroomSheetOpen] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
@@ -139,6 +140,8 @@ export default function BitlynnAppPage() {
           )}
         </AnimatePresence>
       </main>
+
+      {activeTab === "arcade" && <ArcadeApp onExit={() => setActiveTab("home")} />}
 
       <MobileBottomNav
         onOpenClassroomSheet={() => setClassroomSheetOpen(true)}
