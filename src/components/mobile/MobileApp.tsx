@@ -75,7 +75,7 @@ export function MobileApp() {
             />
           )}
           {route.name === "learn" && <LearnScreen onBack={() => go({ name: "pc" })} onPlay={() => go({ name: "arcade" })} />}
-          {route.name === "arcade" && <ArcadeScreen onBack={() => go({ name: "pc" })} onPlay={play} />}
+          {route.name === "arcade" && <ArcadeScreen onBack={() => go({ name: "pc" })} onPlay={play} onLearn={() => go({ name: "learn" })} />}
           {route.name === "shop" && <ShopScreen initialTab={route.tab} onBack={() => go({ name: route.from })} />}
           {route.name === "profile" && (
             <ProfileScreen onBack={() => go({ name: "pc" })} onRules={() => go({ name: "rules" })} onWave={() => go({ name: "wave" })} />

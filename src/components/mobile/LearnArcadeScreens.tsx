@@ -83,12 +83,11 @@ export function LearnScreen({ onBack, onPlay }: { onBack: () => void; onPlay: ()
   );
 }
 
-/** Застосунок «Аркади» (4.0): напрямок питань + один список тренажерів, відкритих рангом. */
-export function ArcadeScreen({ onBack, onPlay }: { onBack: () => void; onPlay: (g: GameId) => void }) {
+/** Застосунок «Аркади» (4.0): поточний режим (змінюється в «Навчанні») + один список тренажерів, відкритих рангом. */
+export function ArcadeScreen({ onBack, onPlay, onLearn }: { onBack: () => void; onPlay: (g: GameId) => void; onLearn: () => void }) {
   const xp = useArcadeStore((s) => s.xp);
   const best = useArcadeStore((s) => s.best);
   const direction = useArcadeStore((s) => s.direction);
-  const setDirection = useArcadeStore((s) => s.setDirection);
   const rank = rankFor(xp);
   const isOpen = (id: GameId) => {
     const g = GAMES.find((x) => x.id === id)!;
@@ -109,30 +108,26 @@ export function ArcadeScreen({ onBack, onPlay }: { onBack: () => void; onPlay: (
       <At r={12} y={16}>
         <BitsChip />
       </At>
-      <span className="absolute left-5 top-[78px] text-[12px]" style={{ fontFamily: FONT_MONO, color: C.muted }}>
-        НАПРЯМОК ПИТАНЬ
-      </span>
-      <div role="radiogroup" aria-label="Напрямок питань" className="absolute left-5 right-5 top-[100px] grid grid-cols-3 gap-2">
-        {DIRECTIONS.map((d) => {
-          const on = d.id === direction;
-          return (
-            <button
-              key={d.id}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => {
-                sfx("tap");
-                setDirection(d.id);
-              }}
-              className="h-11 rounded-[10px] text-[14px] font-semibold outline-none transition-colors"
-              style={on ? { background: "var(--acc)", color: "var(--acc-on)" } : { background: C.card, color: C.text, border: `1px solid ${C.line}` }}
-            >
-              {d.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* the learning mode is chosen in one place only — «Навчання»; here just show it */}
+      <button
+        type="button"
+        onClick={() => {
+          sfx("tap");
+          onLearn();
+        }}
+        className="arc-card absolute left-5 right-5 top-[86px] flex h-14 items-center justify-between gap-3 rounded-[14px] border px-4 text-left outline-none"
+        style={{ background: C.card, borderColor: C.line, color: C.text }}
+      >
+        <span className="flex flex-col">
+          <span className="text-[12px]" style={{ fontFamily: FONT_MONO, color: C.muted }}>
+            ПИТАННЯ
+          </span>
+          <b className="text-[16px]">{dirLabel}</b>
+        </span>
+        <span className="text-[14px] font-semibold" style={{ color: "var(--acc-ring)" }}>
+          Змінити ›
+        </span>
+      </button>
       <span className="absolute left-5 top-[158px] text-[13px]" style={{ color: C.muted }}>
         Ранг {rank.label} · відкрито {opened} з 5 тренажерів
       </span>

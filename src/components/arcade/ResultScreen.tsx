@@ -2,13 +2,11 @@
 
 import { loop } from "@/components/mobile/loop";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   C,
   GameMeta,
-  HERO_ORDER,
-  HERO_THEMES,
   REWARD_RULES,
   RANKS,
   fmt,
@@ -17,7 +15,7 @@ import {
   rankFor,
   rankIndexFor,
 } from "./tokens";
-import { SessionSummary, useArcadeStore } from "./useArcadeStore";
+import { SessionSummary } from "./useArcadeStore";
 import {
   AxoAvatar,
   BitIcon,
@@ -82,30 +80,8 @@ export function ResultScreen({
   const fromPct = summary.rankUp ? 0 : nxt ? ((Math.max(summary.prevXp, floor) - floor) / (ceil - floor)) * 100 : 100;
   const toPct = nxt ? ((summary.newXp - floor) / (ceil - floor)) * 100 : 100;
 
-  const wallet = useArcadeStore((s) => s.bits);
-  const owned = useArcadeStore((s) => s.ownedHeroes);
   const playedDays = summary.waveDaysThisWeek;
 
-  const road = useMemo(() => {
-    const items: { title: string; detail: string; color: string }[] = [];
-    if (nxt) items.push({ title: `Ранг ${nxt.label} + ${nxt.room}`, detail: `ще ${fmt(nxt.xp - summary.newXp)} XP`, color: C.xp });
-    const color = HERO_ORDER.map((id) => HERO_THEMES[id]).find((t) => !owned.includes(t.id) && !t.rankOnly);
-    if (color) {
-      const left = color.price - wallet;
-      items.push({
-        title: `Колір «${color.label}»`,
-        detail: left > 0 ? `ще ${fmt(left)} біт` : "можна взяти вже зараз",
-        color: color.acc,
-      });
-    }
-    const daysLeft = Math.max(0, REWARD_RULES.waveGoalDays - playedDays);
-    items.push({
-      title: "Хвиля тижня",
-      detail: daysLeft > 0 ? `ще ${daysLeft} ${plural(daysLeft, "день", "дні", "днів")} · +${REWARD_RULES.waveBits} біт` : "ціль тижня є ✓",
-      color: C.wave,
-    });
-    return items.slice(0, 3);
-  }, [nxt, owned, wallet, playedDays, summary.newXp]);
 
   const mistake = summary.steps.find((s) => !s.firstTry && s.questionText);
   const returning = summary.returningMistakes.length;
@@ -267,25 +243,6 @@ export function ResultScreen({
           </p>
         )}
 
-        {/* open reward road — everything ahead is visible, no timers, no chests */}
-        <div className="mt-4">
-          <span className="text-[12px] uppercase tracking-[0.08em]" style={{ fontFamily: FONT_MONO, color: C.muted }}>
-            Дорога нагород · наступні {road.length}
-          </span>
-          <ol className="mt-2 flex flex-col gap-2">
-            {road.map((r) => (
-              <li key={r.title} className="flex items-center gap-3 rounded-xl border px-3 py-2.5" style={{ borderColor: C.line }}>
-                <span className="h-3 w-3 shrink-0 rounded-[3px]" style={{ background: r.color }} />
-                <span className="flex-1 text-[14px] font-semibold" style={{ color: C.text }}>
-                  {r.title}
-                </span>
-                <span className="text-[13px]" style={{ color: C.muted }}>
-                  {r.detail}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
       </div>
 
       <div className="flex shrink-0 flex-col gap-3 pt-3" style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}>
