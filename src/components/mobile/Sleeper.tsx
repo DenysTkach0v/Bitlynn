@@ -12,15 +12,12 @@ import { ROOM_MOTION } from "./roomMotion";
  * on the pillow. The blanket «breathes». Eyes: closed / open (for the sleepy blink).
  */
 
-/** Blanket height profile (rows from the top that are still empty), 38 columns ×3 px. */
-const PROFILE = [
-  3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 3, 3, 3, 4, 5,
-];
 const ROWS = 9;
 
 function Blanket({ accent }: { accent: string }) {
   const t = tones(accent);
   const rects: React.ReactNode[] = [];
+  const PROFILE = SLEEP.blanketProfile;
   PROFILE.forEach((top, x) => {
     for (let y = top; y < ROWS; y++) {
       let fill = t.base;
@@ -55,7 +52,11 @@ export function Sleeper({ bed, accent, eyes, blanketOff }: { bed: Bed; accent: s
   const reduce = ROOM_MOTION.respectReducedMotion && !!reducedPref;
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-      <div className="absolute" style={{ left: bed.head.x, top: bed.head.y }}>
+      {/* head lies on its side on the pillow: crown to the wall, chin to the body */}
+      <div
+        className="absolute"
+        style={{ left: bed.head.cx - 24, top: bed.head.cy - 13.5, transform: `rotate(${bed.head.rotate}deg) scale(${bed.head.scale})` }}
+      >
         <Head eyes={eyes} />
       </div>
       <motion.div
