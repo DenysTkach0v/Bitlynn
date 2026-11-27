@@ -9,9 +9,21 @@ import { sfx, haptic } from "@/components/arcade/arcadeAudio";
 import { useArcadeStore } from "@/components/arcade/useArcadeStore";
 
 /** Pixel art taken 1:1 from the «Мобільна версія 4.0» canvas (sanitized SVG). */
-export function Art({ name, className = "", style }: { name: string; className?: string; style?: React.CSSProperties }) {
-  const svg = ART[name];
+export function Art({
+  name,
+  className = "",
+  style,
+  recolor,
+}: {
+  name: string;
+  className?: string;
+  style?: React.CSSProperties;
+  /** swap exact fill colours, e.g. paint the desk chair in the hero colour */
+  recolor?: Record<string, string>;
+}) {
+  let svg = ART[name];
   if (!svg) return null;
+  if (recolor) for (const [from, to] of Object.entries(recolor)) svg = svg.split(`fill="${from}"`).join(`fill="${to}"`);
   return (
     <span
       aria-hidden="true"

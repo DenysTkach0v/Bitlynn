@@ -23,8 +23,8 @@ export const IDLE = {
   /** перша дія після того, як він став на місце */
   firstDelayMs: 2200,
   /** пауза між діями: випадково між min і max */
-  gapMinMs: 3500,
-  gapMaxMs: 7000,
+  gapMinMs: 6000,
+  gapMaxMs: 11000,
 
   moves: {
     scratch: {

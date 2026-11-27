@@ -7,7 +7,6 @@ import { useArcadeStore } from "@/components/arcade/useArcadeStore";
 import { FONT_MONO, FONT_PIXEL, LockIcon } from "@/components/arcade/ui";
 import { sfx, haptic } from "@/components/arcade/arcadeAudio";
 import { Art, At, BitsChip, Cta } from "./kit";
-import { ITEM_NAMES } from "./ShopProfileScreens";
 import { OFFSTAGE, ROOM_MOTION as M } from "./roomMotion";
 import { useRoomWalker, wait } from "./useRoomWalker";
 import { useSitScene } from "./useSitScene";
@@ -47,7 +46,6 @@ export function RoomScreen({
   const reduce = M.respectReducedMotion && !!reducedPref;
   const xp = useArcadeStore((s) => s.xp);
   const hero = useArcadeStore((s) => s.hero);
-  const ownedItems = useArcadeStore((s) => s.ownedItems);
   const myRoom = rankIndexFor(xp); // 0..3
   const [view, setView] = useState(myRoom);
   /** while the camera pans, both rooms sit side by side on one strip */
@@ -74,10 +72,6 @@ export function RoomScreen({
   const rank = RANKS[view];
   const next = RANKS[view + 1];
   const nextRoom = ROOMS[view + 1];
-  // room items + what the child bought in the shop (one line: extra ones fold into «+N»)
-  const bought = view === myRoom ? ownedItems.map((id) => ITEM_NAMES[id]).filter((n) => n && !room.items.includes(n) && n !== "Старий ноутбук" && n !== "Матрац") : [];
-  const allChips = [...bought, ...room.items];
-  const chips = allChips.length > 3 ? [...allChips.slice(0, 2), `+${allChips.length - 2} ще`] : allChips;
   const pct = next ? Math.max(0, Math.min(100, ((xp - rank.xp) / (next.xp - rank.xp)) * 100)) : 100;
 
   /**
@@ -361,15 +355,7 @@ export function RoomScreen({
         </span>
       </At>
 
-      <At x={20} r={20} y={460} className="flex flex-wrap gap-2">
-        {chips.map((it) => (
-          <span key={it} className="rounded-lg border px-2.5 py-[5px] text-[13px]" style={{ background: C.card, borderColor: C.line, opacity: locked ? 0.6 : 1 }}>
-            {it}
-          </span>
-        ))}
-      </At>
-
-      <At x={20} r={20} y={498} className="flex flex-col gap-2 rounded-xl border px-3.5 py-2.5 leading-[18px]" style={{ background: C.card, borderColor: C.line }}>
+      <At x={20} r={20} y={466} className="flex flex-col gap-2 rounded-xl border px-3.5 py-2.5 leading-[18px]" style={{ background: C.card, borderColor: C.line }}>
         <div className="flex justify-between gap-2 text-[14px]">
           <span style={{ color: C.muted }}>Відкриває</span>
           <b>{room.opens}</b>
@@ -397,22 +383,18 @@ export function RoomScreen({
         )}
       </At>
 
-      <At x={20} r={20} y={594} className="grid grid-cols-2 gap-3">
-        {["Улюбленці", "Декор"].map((t, i) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => {
-              sfx("tap");
-              onShop(i === 0 ? 1 : 2);
-            }}
-            className="arc-secondary h-12 rounded-xl border text-[15px] font-semibold outline-none"
-            style={{ borderColor: C.line, background: "transparent", color: C.text }}
-          >
-            {t}
-          </button>
-        ))}
-      </At>
+      {/* one quiet secondary action instead of two (9+: fewer choices) */}
+      <button
+        type="button"
+        onClick={() => {
+          sfx("tap");
+          onShop(1);
+        }}
+        className="arc-secondary absolute left-[88px] top-[600px] h-12 w-[214px] rounded-[14px] border text-[15px] font-semibold outline-none"
+        style={{ borderColor: C.line, background: "transparent", color: C.text }}
+      >
+        Магазин кімнати
+      </button>
 
       <Cta onClick={sit} disabled={locked}>
         {locked ? "Кімната ще закрита" : "Сісти за комп’ютер"}

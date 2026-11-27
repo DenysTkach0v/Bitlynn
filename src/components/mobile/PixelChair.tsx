@@ -2,6 +2,7 @@
 
 import React from "react";
 import { MotionValue, motion, useTransform } from "framer-motion";
+import { mixHex } from "@/components/arcade/axolotlSprite";
 
 /**
  * Pixel office chair with a gas lift, drawn in the room's style (×3 pixels,
@@ -26,6 +27,34 @@ export const CHAIR = {
   /** how far the hero sinks into the cushion */
   SINK: 3,
 };
+
+/**
+ * The chair's colours for a hero colour — one source for the animated chair
+ * and the chair drawn in the desk view, so both look identical.
+ */
+export function chairPalette(accent: string) {
+  return {
+    outline: "#1A1D2B",
+    metal: "#5D6B8A",
+    cushion: accent,
+    light: mixHex(accent, "#FFFFFF", 0.45), // same as the 45 % white highlight
+    shade: mixHex(accent, "#000000", 0.3), // same as the 30 % black shade
+  };
+}
+
+/**
+ * Desk-view art (canvas «За столом») draws a big chair back in four colours
+ * used nowhere else in that picture; map them onto the animated chair's palette.
+ */
+export function deskChairRecolor(accent: string): Record<string, string> {
+  const p = chairPalette(accent);
+  return {
+    "#100E1A": p.outline, // outline
+    "#2E2A44": p.cushion, // back cushion
+    "#3C3758": p.light, // lit top/left edge and tufting lines
+    "#221F33": p.shade, // shaded right edge
+  };
+}
 
 /** Offset of the hero (from standing on the floor) when he sits on a chair lifted by `lift` px. */
 export function sitOffset(lift: number) {

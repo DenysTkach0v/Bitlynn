@@ -23,25 +23,25 @@ export const AMBIENCE: RoomAmbience[] = [
   // 1 · Капсула — круглий ілюмінатор і лампа під стелею
   {
     windows: [{ shape: "circle", cx: 216, cy: 108, r: 33 }],
-    bubbles: 7,
+    bubbles: 4,
     lamps: [{ x: 103, y: 62, r: 46, color: "#FFD36B" }],
   },
   // 2 · Студія — ілюмінатор праворуч угорі
   {
     windows: [{ shape: "circle", cx: 330, cy: 99, r: 38 }],
-    bubbles: 7,
+    bubbles: 4,
     lamps: [],
   },
   // 3 · Dev-лофт — велике прямокутне вікно ліворуч
   {
     windows: [{ shape: "rect", x: 24, y: 54, w: 108, h: 114 }],
-    bubbles: 10,
+    bubbles: 6,
     lamps: [],
   },
   // 4 · Купол — скляний купол над кімнатою
   {
     windows: [{ shape: "rect", x: 0, y: 18, w: 390, h: 150 }],
-    bubbles: 16,
+    bubbles: 8,
     lamps: [],
   },
 ];
@@ -50,17 +50,17 @@ export const BUBBLES = {
   /** розмір бульбашки — кратний 3, щоб лягати в піксельну сітку */
   sizes: [3, 3, 6, 6, 9],
   /** скільки секунд бульбашка піднімається через усе вікно */
-  riseSecMin: 3.2,
-  riseSecMax: 6.5,
+  riseSecMin: 4.5,
+  riseSecMax: 8,
   /** наскільки вона хитається вбік (px) */
   wobblePx: 6,
-  opacity: 0.55,
+  opacity: 0.45,
   color: "#C6F6FF",
 };
 
 export const LAMP_GLOW = {
   /** світло лампи «дихає»: мінімальна й максимальна яскравість */
   min: 0.22,
-  max: 0.4,
-  periodSec: 3.6,
+  max: 0.32,
+  periodSec: 5,
 };

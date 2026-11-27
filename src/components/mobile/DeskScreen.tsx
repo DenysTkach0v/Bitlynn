@@ -9,6 +9,8 @@ import { useArcadeStore, weekKey } from "@/components/arcade/useArcadeStore";
 import { FONT_MONO } from "@/components/arcade/ui";
 import { sfx } from "@/components/arcade/arcadeAudio";
 import { Art, At, BackChevron, BitsChip, Cta, SquareButton } from "./kit";
+import { deskChairRecolor } from "./PixelChair";
+import { HERO_THEMES } from "@/components/arcade/tokens";
 
 /** «За столом» — вид зі спини. Кнопка вмикає ПК з короткою анімацією завантаження BitOS. */
 export function DeskScreen({ onBack, onBooted }: { onBack: () => void; onBooted: () => void }) {
@@ -36,7 +38,8 @@ export function DeskScreen({ onBack, onBooted }: { onBack: () => void; onBooted:
       </At>
 
       <At x={0} y={64} w={390} h={390}>
-        <Art name="desk" />
+        {/* the chair here is the same chair he pulled out of his pocket: same colours */}
+        <Art name="desk" recolor={deskChairRecolor(HERO_THEMES[hero].acc)} />
         <div className="absolute" style={{ left: 168, top: 235 - 64 }}>
           <motion.div animate={booting && !reduce ? { y: loop([0, -2, 0]) } : undefined} transition={{ duration: 0.3, repeat: 3 }}>
             <Art name={`heroDesk_${hero}`} />
@@ -59,7 +62,7 @@ export function DeskScreen({ onBack, onBooted }: { onBack: () => void; onBooted:
 
       <h2 className="absolute left-5 top-[470px] m-0 text-[26px] font-bold">За столом</h2>
       <p className="absolute left-5 right-5 top-[508px] m-0 text-[15px] leading-[1.45]" style={{ color: C.muted }}>
-        Комп’ютер — твій центр: уроки, аркади, квести і команда.
+        Комп’ютер — тут уроки й аркади.
       </p>
       <At x={20} r={20} y={566} className="flex items-center gap-3.5 rounded-xl border px-3.5 py-3" style={{ background: C.card, borderColor: C.line }}>
         <Art name="wave" />
