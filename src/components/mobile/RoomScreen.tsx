@@ -11,7 +11,9 @@ import { ITEM_NAMES } from "./ShopProfileScreens";
 import { OFFSTAGE, ROOM_MOTION as M } from "./roomMotion";
 import { useRoomWalker, wait } from "./useRoomWalker";
 import { useSitScene } from "./useSitScene";
-import { FLOOR_Y, SIT_SCENE } from "./sitScene";
+import { BED, FLOOR_Y, SIT_SCENE } from "./sitScene";
+import { Sleeper } from "./Sleeper";
+import { Ambience } from "./Ambience";
 import { PixelChair } from "./PixelChair";
 import { HERO_THEMES } from "@/components/arcade/tokens";
 
@@ -150,6 +152,7 @@ export function RoomScreen({
     return (
       <>
         <Art name={`room${r.id}`} style={{ filter: isLocked ? "grayscale(0.7) brightness(0.45)" : undefined }} />
+        <Ambience room={i} still={isLocked} />
         {isLocked && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "rgba(14,15,19,.8)", border: `1px solid ${C.line}` }}>
@@ -198,7 +201,19 @@ export function RoomScreen({
           )}
         </motion.div>
 
-        {/* the chair from the pocket (behind the hero) */}
+        {/* asleep: body under the blanket, head on the pillow */}
+        {heroRoom !== null && scene.inBed && BED[heroRoom] && (
+          <Sleeper bed={BED[heroRoom]!} accent={HERO_THEMES[hero].acc} eyes={scene.eyes} blanketOff={scene.blanketOff} />
+        )}
+
+        {/* back view after the swivel: drawn behind the chair, so the chair back hides his body */}
+        {heroRoom !== null && scene.back && (
+          <motion.div aria-hidden="true" className="absolute left-0 top-0" style={{ x: scene.back.x, y: scene.back.y, scaleX: scene.swivel, opacity: walker.fade }}>
+            <Art name={`heroDesk_${hero}`} />
+          </motion.div>
+        )}
+
+        {/* the chair from the pocket */}
         {heroRoom !== null && scene.chairOn && (
           <motion.div
             aria-hidden="true"
@@ -212,7 +227,7 @@ export function RoomScreen({
               transformOrigin: "50% -28px",
             }}
           >
-            <motion.div style={{ scaleY: scene.chair.squash, transformOrigin: "50% 0" }}>
+            <motion.div style={{ scaleY: scene.chair.squash, scaleX: scene.swivel, transformOrigin: "50% 0" }}>
               <PixelChair accent={HERO_THEMES[hero].acc} lift={scene.chair.lift} lever={scene.chair.lever} />
             </motion.div>
           </motion.div>
@@ -234,7 +249,10 @@ export function RoomScreen({
               walker.hop();
             }}
           >
-            <motion.span className="block" style={{ rotate: scene.lay, y: scene.layY, scaleY: scene.squash, originX: 0.5, originY: 0.5 }}>
+            <motion.span
+              className="block"
+              style={{ y: scene.layY, scaleY: scene.squash, scaleX: scene.swivel, originX: 0.5, originY: 1, opacity: scene.inBed || scene.back ? 0 : 1 }}
+            >
               <span className="block" style={{ transform: `scaleX(${walker.facing})`, transition: "transform 80ms" }}>
                 <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
               </span>

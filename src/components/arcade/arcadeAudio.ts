@@ -38,7 +38,9 @@ export type ArcadeSfx =
   | "bonk"
   | "boing"
   | "plop"
-  | "lift";
+  | "lift"
+  | "yawn"
+  | "squeak";
 
 interface Note {
   f: number;
@@ -100,6 +102,16 @@ const SFX: Record<ArcadeSfx, Note[]> = {
   ],
   boing: [{ f: 220, t: 0, d: 0.28, type: "sine", v: 0.07, slideTo: 760 }],
   plop: [{ f: 260, t: 0, d: 0.08, type: "sine", v: 0.06, slideTo: 120 }],
+  // sleepy «ha-a-am» yawn
+  yawn: [
+    { f: 330, t: 0, d: 0.3, type: "sine", v: 0.05, slideTo: 440 },
+    { f: 440, t: 0.28, d: 0.32, type: "sine", v: 0.045, slideTo: 260 },
+  ],
+  // office chair swivel squeak
+  squeak: [
+    { f: 900, t: 0, d: 0.07, type: "square", v: 0.015, slideTo: 1300 },
+    { f: 1200, t: 0.08, d: 0.06, type: "square", v: 0.012, slideTo: 800 },
+  ],
   // gas-lift «pshhh»: a fast airy hiss rising in pitch
   lift: [
     { f: 2400, t: 0, d: 0.32, type: "sawtooth", v: 0.012, slideTo: 3400 },

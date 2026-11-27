@@ -55,3 +55,26 @@ body {
     border-color: #3a3d4c;
   }
 }
+
+/* ── Room ambience (edit values in src/components/mobile/ambienceConfig.ts) ── */
+@keyframes bl-bubble-rise {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(var(--wobble), calc(var(--rise) * 0.25)); }
+  50% { transform: translate(0, calc(var(--rise) * 0.5)); }
+  75% { transform: translate(calc(var(--wobble) * -1), calc(var(--rise) * 0.75)); }
+  100% { transform: translate(0, var(--rise)); }
+}
+.bl-bubble {
+  animation-name: bl-bubble-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes bl-lamp-breathe {
+  0%, 100% { opacity: var(--lamp-min); }
+  50% { opacity: var(--lamp-max); }
+}
+.bl-lamp {
+  animation-name: bl-lamp-breathe;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
