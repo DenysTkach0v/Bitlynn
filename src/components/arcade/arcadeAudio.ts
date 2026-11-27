@@ -37,7 +37,8 @@ export type ArcadeSfx =
   | "pop"
   | "bonk"
   | "boing"
-  | "plop";
+  | "plop"
+  | "lift";
 
 interface Note {
   f: number;
@@ -99,6 +100,11 @@ const SFX: Record<ArcadeSfx, Note[]> = {
   ],
   boing: [{ f: 220, t: 0, d: 0.28, type: "sine", v: 0.07, slideTo: 760 }],
   plop: [{ f: 260, t: 0, d: 0.08, type: "sine", v: 0.06, slideTo: 120 }],
+  // gas-lift «pshhh»: a fast airy hiss rising in pitch
+  lift: [
+    { f: 2400, t: 0, d: 0.32, type: "sawtooth", v: 0.012, slideTo: 3400 },
+    { f: 180, t: 0, d: 0.3, type: "triangle", v: 0.03, slideTo: 320 },
+  ],
   wave: [
     { f: 392, t: 0, d: 0.3, type: "sine", v: 0.05, slideTo: 523 },
     { f: 659, t: 0.2, d: 0.35, type: "sine", v: 0.05 },

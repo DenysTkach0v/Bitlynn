@@ -1,78 +1,107 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { MotionValue, animate, useMotionValue } from "framer-motion";
+import { MotionValue, animate, useMotionValue, useTransform } from "framer-motion";
 import { sfx, haptic } from "@/components/arcade/arcadeAudio";
 import { ROOM_MOTION as M } from "./roomMotion";
-import { SIT_SCENE as S } from "./sitScene";
+import { BED, DESK, FLOOR_Y, HERO_H, HERO_W, SIT_BELOW_DESK, SIT_SCENE as S } from "./sitScene";
+import { CHAIR, sitOffset } from "./PixelChair";
 import { useRoomWalker } from "./useRoomWalker";
 
 type Walker = ReturnType<typeof useRoomWalker>;
+type Ease = "easeIn" | "easeOut" | "easeInOut" | "linear";
 
-const tween = (mv: MotionValue<number>, to: number | number[], ms: number, ease: "easeIn" | "easeOut" | "easeInOut" | "linear" = "easeOut") =>
+const tween = (mv: MotionValue<number>, to: number | number[], ms: number, ease: Ease = "easeOut") =>
   new Promise<void>((resolve) => animate(mv, to as number, { duration: ms / 1000, ease, onComplete: resolve }));
 
+/** Hero top when he stands on the floor. */
+export const HERO_TOP = FLOOR_Y - HERO_H;
+
 /**
- * The «sleep → wake → chair from the pocket → jump» choreography.
- * Timings and offsets come from sitScene.ts; this file only orders the steps.
+ * Lying on a bed: the sprite turns −90° around its centre, so its box becomes
+ * HERO_H wide and HERO_W tall. Returns the y shift that puts that box exactly on the mattress.
+ */
+function lyingShift(surface: number) {
+  return surface - (HERO_TOP + HERO_H / 2 + HERO_W / 2);
+}
+
+/** How high the gas lift must rise so his feet end SIT_BELOW_DESK under the desk top. */
+export function liftFor(room: number) {
+  const desk = DESK[room];
+  const sitBottomAtZero = FLOOR_Y + sitOffset(0);
+  return Math.max(0, sitBottomAtZero - (desk.top + SIT_BELOW_DESK));
+}
+
+/**
+ * The «sleep → wake → chair from the pocket → hop on → lever lift» choreography.
+ * Every number comes from sitScene.ts; this file only orders the steps.
  */
 export function useSitScene(walker: Walker) {
-  /** lying on the bed: rotation (deg) and how much lower he lies (px) */
-  const lay = useMotionValue(0);
-  const layY = useMotionValue(0);
-  /** squash & stretch of the hero (scaleY) */
-  const squash = useMotionValue(1);
-  /** the chair */
+  const lay = useMotionValue(0); // rotation while lying (deg)
+  const layY = useMotionValue(0); // lying / getting-up offset (px)
+  const squash = useMotionValue(1); // hero scaleY
+  // the chair: x of its left edge, how high it flies above the floor, its scale/spin/squash, the gas lift, the lever
   const chairX = useMotionValue(0);
-  const chairY = useMotionValue(0);
-  const chairScale = useMotionValue(0);
+  const chairUp = useMotionValue(0);
+  const chairScale = useMotionValue(1);
   const chairRot = useMotionValue(0);
   const chairSquash = useMotionValue(1);
+  const lift = useMotionValue(0);
+  const lever = useMotionValue(0);
 
   const [asleep, setAsleep] = useState(false);
   const [alert, setAlert] = useState(false);
   const [chairOn, setChairOn] = useState(false);
   const skipped = useRef(false);
 
-  /** Put him to bed at a spot (instant). */
-  const sleepAt = useCallback(
-    (x: number, dy: number) => {
-      walker.heroX.set(x);
+  // chairY mirrors chairUp (up = negative y) so the steps think in «height above the floor»
+  const chairY = useTransform(chairUp, (v) => -v);
+
+  /** Put him to bed in a room that has one (instant). Returns false when there is no bed. */
+  const sleepIn = useCallback(
+    (room: number) => {
+      const bed = BED[room];
+      if (!bed) return false;
+      walker.heroX.set(bed.x);
       lay.set(-90);
-      layY.set(dy);
+      layY.set(lyingShift(bed.surface));
       setAsleep(true);
+      return true;
     },
     [walker.heroX, lay, layY]
   );
 
-  /** 1 · wake up: «!», hop, stand. Safe to call when already awake. */
+  /** 1 · wake up: «!», a hop off the bed onto the floor. Safe to call when awake. */
   const wake = useCallback(async () => {
     if (!asleep) return;
     setAsleep(false);
     setAlert(true);
     sfx("wake");
     haptic(6);
+    const from = layY.get();
     await Promise.all([
-      tween(lay, 0, S.wakeMs, "easeOut"),
-      tween(layY, 0, S.wakeMs, "easeOut"),
-      tween(walker.bob, [0, -S.wakeHopPx, 0], S.wakeMs, "easeOut"),
+      tween(lay, 0, S.wakeMs * 0.6, "easeOut"),
+      tween(layY, [from, from - S.wakeHopPx, 0], S.wakeMs, "easeInOut"),
     ]);
+    sfx("plop");
     setTimeout(() => setAlert(false), Math.max(0, S.alertMs - S.wakeMs));
-  }, [asleep, lay, layY, walker.bob]);
+  }, [asleep, lay, layY]);
 
-  /** Full scene. Resolves when he sits (or right away when skipped). */
+  /** Full scene in room `room`. Resolves when he is up at the keyboard (or right away when skipped). */
   const play = useCallback(
-    async (pcX: number) => {
+    async (room: number) => {
       skipped.current = false;
       const stop = () => skipped.current;
+      const desk = DESK[room];
+      const targetLift = liftFor(room);
 
       await wake();
       if (stop()) return;
 
-      // 2 · walk to the PC
-      const d = pcX >= walker.heroX.get() ? 1 : -1;
+      // 2 · walk to his spot in front of the desk
+      const d = desk.heroX >= walker.heroX.get() ? 1 : -1;
       walker.startSteps(d);
-      await walker.walkTo(pcX, S.walkMs, M.easeWalkIn);
+      await walker.walkTo(desk.heroX, S.walkMs, M.easeWalkIn);
       walker.stopSteps();
       if (stop()) return;
 
@@ -81,47 +110,59 @@ export function useSitScene(walker: Walker) {
       await tween(walker.lean, S.patKeysDeg, S.patMs, "linear");
       if (stop()) return;
 
-      // 4 · a tiny chair pops out of the pocket…
-      const x0 = pcX + S.pocketOffset.x;
-      chairX.set(x0);
-      chairY.set(S.pocketOffset.y);
+      // 4 · a tiny chair pops out of the pocket, flips and grows…
+      const finalX = desk.heroX + (HERO_W - CHAIR.W) / 2;
+      chairX.set(desk.heroX + S.pocket.x - CHAIR.W / 2);
+      chairUp.set(S.pocket.up);
       chairScale.set(S.popStartScale);
       chairRot.set(0);
       chairSquash.set(1);
+      lift.set(0);
+      lever.set(0);
       setChairOn(true);
       sfx("pop");
       await Promise.all([
-        tween(chairY, S.popPeakY, S.popMs, "easeOut"),
-        tween(chairScale, 0.55, S.popMs, "easeOut"),
-        tween(chairRot, -140, S.popMs, "easeOut"),
-        tween(chairX, x0 + 14, S.popMs, "easeOut"),
+        tween(chairUp, S.popPeakUp, S.popMs, "easeOut"),
+        tween(chairScale, 0.5, S.popMs, "easeOut"),
+        tween(chairRot, -120, S.popMs, "easeOut"),
       ]);
       if (stop()) return;
-
-      // 5 · …does a flip and grows…
       await Promise.all([
-        tween(chairY, S.chairOffset.y, S.flipMs, "easeIn"),
+        tween(chairUp, 0, S.flipMs, "easeIn"),
         tween(chairScale, 1, S.flipMs, "easeOut"),
         tween(chairRot, 360 * S.flipTurns, S.flipMs, "easeInOut"),
-        tween(chairX, pcX + S.chairOffset.x, S.flipMs, "easeInOut"),
+        tween(chairX, finalX, S.flipMs, "easeInOut"),
       ]);
-      // 6 · …and lands with a bonk
+      // 5 · wheels on the floor — bonk
+      chairRot.set(0);
       sfx("bonk");
       haptic(12);
-      chairRot.set(0);
       await tween(chairSquash, S.landSquashKeys, S.landMs, "easeOut");
       if (stop()) return;
 
-      // 7 · boing — jump onto the chair
+      // 6 · hop onto the seat (chair at its lowest)
       sfx("boing");
-      await tween(walker.bob, [0, -S.jumpPeakPx, -S.seatPx], S.jumpMs, "easeOut");
-      // 8 · plop
+      await tween(walker.bob, [0, -S.hopPeakPx - 27, sitOffset(0)], S.hopMs, "easeOut");
       sfx("plop");
-      await tween(squash, S.plopSquashKeys, S.plopMs, "easeOut");
+      await tween(squash, [0.86, 1.06, 1], 160, "easeOut");
+      if (stop()) return;
+
+      // 7 · press the lever — pshhh — the gas lift raises him to the keyboard
+      await tween(lever, 28, S.leverMs, "easeOut");
+      sfx("lift");
+      const up = [0, targetLift + S.liftOvershootPx, targetLift];
+      await Promise.all([
+        tween(lift, up, S.liftMs, "easeOut"),
+        tween(walker.bob, up.map((v) => sitOffset(v)), S.liftMs, "easeOut"),
+        tween(lever, 0, S.liftMs, "easeOut"),
+      ]);
+      if (stop()) return;
+
+      // 8 · ready
       await new Promise((r) => setTimeout(r, S.holdMs));
       await tween(walker.fade, 0, S.fadeMs, "linear");
     },
-    [wake, walker, chairX, chairY, chairScale, chairRot, chairSquash, squash]
+    [wake, walker, chairX, chairUp, chairScale, chairRot, chairSquash, lift, lever, squash]
   );
 
   const skip = useCallback(() => {
@@ -132,11 +173,11 @@ export function useSitScene(walker: Walker) {
     lay,
     layY,
     squash,
-    chair: { x: chairX, y: chairY, scale: chairScale, rotate: chairRot, squash: chairSquash },
+    chair: { x: chairX, y: chairY, scale: chairScale, rotate: chairRot, squash: chairSquash, lift, lever },
     asleep,
     alert,
     chairOn,
-    sleepAt,
+    sleepIn,
     wake,
     play,
     skip,

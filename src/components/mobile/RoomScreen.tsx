@@ -8,10 +8,10 @@ import { FONT_MONO, FONT_PIXEL, LockIcon } from "@/components/arcade/ui";
 import { sfx, haptic } from "@/components/arcade/arcadeAudio";
 import { Art, At, BitsChip, Cta } from "./kit";
 import { ITEM_NAMES } from "./ShopProfileScreens";
-import { OFFSTAGE, ROOM_MOTION as M, ROOM_PC_X } from "./roomMotion";
+import { OFFSTAGE, ROOM_MOTION as M } from "./roomMotion";
 import { useRoomWalker, wait } from "./useRoomWalker";
 import { useSitScene } from "./useSitScene";
-import { BED_SPOT, SIT_SCENE } from "./sitScene";
+import { FLOOR_Y, SIT_SCENE } from "./sitScene";
 import { PixelChair } from "./PixelChair";
 import { HERO_THEMES } from "@/components/arcade/tokens";
 
@@ -25,7 +25,7 @@ export interface RoomInfo {
 
 /** Чотири кімнати з канвасу: ранг відкриває кімнату й нові ігри. */
 export const ROOMS: RoomInfo[] = [
-  { id: 1, name: "Капсула", items: ["Старий ноутбук", "Матрац", "Ілюмінатор"], opens: "Змійка, Лови", hero: { x: 78, y: 238 } },
+  { id: 1, name: "Капсула", items: ["Старий ноутбук", "Матрац", "Ілюмінатор"], opens: "Змійка, Лови", hero: { x: 78, y: 277 } }, // y 277 = on the floor (see sitScene.ts)
   { id: 2, name: "Студія", items: ["Робочий ПК", "Рибка", "Книжкова полиця"], opens: "Підводний лабіринт", hero: { x: 120, y: 277 } },
   { id: 3, name: "Dev-лофт", items: ["Два монітори", "Міні-сервер", "Краб"], opens: "Доставка, сервер", hero: { x: 210, y: 277 } },
   { id: 4, name: "Купол", items: ["Дата-центр", "Голо-стіл", "Медуза"], opens: "Фабрика, дата-центр", hero: { x: 156, y: 277 } },
@@ -57,8 +57,7 @@ export function RoomScreen({
 
   // he starts the day asleep in bed (only in a room that has one)
   useEffect(() => {
-    const bed = BED_SPOT[myRoom];
-    if (bed && !reduce) scene.sleepAt(bed.x, bed.dy);
+    if (!reduce) scene.sleepIn(myRoom);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -133,7 +132,7 @@ export function RoomScreen({
     haptic(8);
     if (!reduce) {
       setSceneOn(true);
-      await scene.play(ROOM_PC_X[view] ?? room.hero.x);
+      await scene.play(view);
     }
     finishSit();
   };
@@ -205,16 +204,17 @@ export function RoomScreen({
             aria-hidden="true"
             className="absolute left-0"
             style={{
-              top: ROOMS[heroRoom].hero.y - 64 + 48 - 54,
+              top: FLOOR_Y, // the chair is anchored at the floor and draws upwards
               x: scene.chair.x,
               y: scene.chair.y,
               scale: scene.chair.scale,
               rotate: scene.chair.rotate,
-              scaleY: scene.chair.squash,
-              originY: 1,
+              transformOrigin: "50% -28px",
             }}
           >
-            <PixelChair accent={HERO_THEMES[hero].acc} />
+            <motion.div style={{ scaleY: scene.chair.squash, transformOrigin: "50% 0" }}>
+              <PixelChair accent={HERO_THEMES[hero].acc} lift={scene.chair.lift} lever={scene.chair.lever} />
+            </motion.div>
           </motion.div>
         )}
 
@@ -234,7 +234,7 @@ export function RoomScreen({
               walker.hop();
             }}
           >
-            <motion.span className="block" style={{ rotate: scene.lay, y: scene.layY, scaleY: scene.squash, originX: 0.5, originY: 1 }}>
+            <motion.span className="block" style={{ rotate: scene.lay, y: scene.layY, scaleY: scene.squash, originX: 0.5, originY: 0.5 }}>
               <span className="block" style={{ transform: `scaleX(${walker.facing})`, transition: "transform 80ms" }}>
                 <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
               </span>
