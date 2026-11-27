@@ -38,9 +38,12 @@ export const ROOMS: RoomInfo[] = [
 export function RoomScreen({
   onSit,
   onShop,
+  onRankTap,
 }: {
   onSit: () => void;
   onShop: (tab: number) => void;
+  /** taps on the rank badge (5 quick taps open the developer panel) */
+  onRankTap?: () => void;
 }) {
   const reducedPref = useReducedMotion();
   const reduce = M.respectReducedMotion && !!reducedPref;
@@ -183,12 +186,15 @@ export function RoomScreen({
     >
       {/* top: rank + bits */}
       <At x={12} r={12} y={12} h={48} className="flex items-center justify-between">
-        <span
-          className="flex h-10 items-center rounded-[10px] px-3 text-[17px] font-bold"
+        <button
+          type="button"
+          onClick={onRankTap}
+          aria-label={`Ранг ${RANKS[myRoom].label}`}
+          className="flex h-10 items-center rounded-[10px] px-3 text-[17px] font-bold outline-none"
           style={{ fontFamily: FONT_PIXEL, background: "var(--acc-soft)", border: "1px solid var(--acc)", color: "var(--acc-ring)" }}
         >
           {RANKS[myRoom].label}
-        </span>
+        </button>
         <BitsChip />
       </At>
 

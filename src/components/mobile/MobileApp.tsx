@@ -14,6 +14,7 @@ import { DeskScreen } from "./DeskScreen";
 import { BitOSScreen } from "./BitOSScreen";
 import { ArcadeScreen, LearnScreen } from "./LearnArcadeScreens";
 import { ProfileScreen, ShopScreen } from "./ShopProfileScreens";
+import { DevPanel, useDevMode, useSecretTaps } from "./DevPanel";
 
 type Route =
   | { name: "room" }
@@ -42,6 +43,8 @@ export function MobileApp() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => setHydrated(true), []);
+  const dev = useDevMode();
+  const rankTap = useSecretTaps(() => dev.set(!dev.on));
 
   const go = (r: Route) => {
     setPrevDepth(DEPTH[route.name]);
@@ -66,7 +69,7 @@ export function MobileApp() {
           exit={reduce ? { opacity: 0 } : { opacity: 0, scale: deeper ? 1.04 : 0.96 }}
           transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
         >
-          {route.name === "room" && <RoomScreen onSit={() => go({ name: "desk" })} onShop={(tab) => go({ name: "shop", tab, from: "room" })} />}
+          {route.name === "room" && <RoomScreen onSit={() => go({ name: "desk" })} onShop={(tab) => go({ name: "shop", tab, from: "room" })} onRankTap={rankTap} />}
           {route.name === "desk" && <DeskScreen onBack={() => go({ name: "room" })} onBooted={() => go({ name: "pc" })} />}
           {route.name === "pc" && (
             <BitOSScreen
@@ -85,6 +88,7 @@ export function MobileApp() {
           {route.name === "game" && <GameSession game={route.game} onExit={() => go({ name: "arcade" })} onRoom={() => go({ name: "room" })} />}
         </motion.div>
       </AnimatePresence>
+      {dev.on && <DevPanel onClose={() => dev.set(false)} />}
     </Stage>
     </MotionConfig>
   );
