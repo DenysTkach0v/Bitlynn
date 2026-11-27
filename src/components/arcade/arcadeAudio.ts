@@ -31,7 +31,13 @@ export type ArcadeSfx =
   | "wave"
   | "stepL"
   | "stepR"
-  | "swish";
+  | "swish"
+  | "wake"
+  | "pat"
+  | "pop"
+  | "bonk"
+  | "boing"
+  | "plop";
 
 interface Note {
   f: number;
@@ -77,6 +83,22 @@ const SFX: Record<ArcadeSfx, Note[]> = {
     { f: 520, t: 0, d: 0.26, type: "sine", v: 0.022, slideTo: 260 },
     { f: 780, t: 0.02, d: 0.2, type: "sine", v: 0.012, slideTo: 390 },
   ],
+  // ── sit scene (cartoon) ──
+  wake: [
+    { f: 520, t: 0, d: 0.08, type: "square", v: 0.03, slideTo: 880 },
+    { f: 1046, t: 0.08, d: 0.07, type: "square", v: 0.025 },
+  ],
+  pat: [
+    { f: 140, t: 0, d: 0.035, type: "triangle", v: 0.05 },
+    { f: 160, t: 0.09, d: 0.035, type: "triangle", v: 0.05 },
+  ],
+  pop: [{ f: 300, t: 0, d: 0.09, type: "sine", v: 0.08, slideTo: 1400 }],
+  bonk: [
+    { f: 120, t: 0, d: 0.09, type: "triangle", v: 0.08, slideTo: 70 },
+    { f: 660, t: 0, d: 0.05, type: "square", v: 0.02, slideTo: 440 },
+  ],
+  boing: [{ f: 220, t: 0, d: 0.28, type: "sine", v: 0.07, slideTo: 760 }],
+  plop: [{ f: 260, t: 0, d: 0.08, type: "sine", v: 0.06, slideTo: 120 }],
   wave: [
     { f: 392, t: 0, d: 0.3, type: "sine", v: 0.05, slideTo: 523 },
     { f: 659, t: 0.2, d: 0.35, type: "sine", v: 0.05 },

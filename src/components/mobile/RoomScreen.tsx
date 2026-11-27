@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import { animate, motion, useReducedMotion } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
+import { AnimatePresence, animate, motion, useReducedMotion } from "framer-motion";
 import { C, RANKS, fmt, rankIndexFor } from "@/components/arcade/tokens";
 import { useArcadeStore } from "@/components/arcade/useArcadeStore";
 import { FONT_MONO, FONT_PIXEL, LockIcon } from "@/components/arcade/ui";
@@ -10,6 +10,10 @@ import { Art, At, BitsChip, Cta } from "./kit";
 import { ITEM_NAMES } from "./ShopProfileScreens";
 import { OFFSTAGE, ROOM_MOTION as M, ROOM_PC_X } from "./roomMotion";
 import { useRoomWalker, wait } from "./useRoomWalker";
+import { useSitScene } from "./useSitScene";
+import { BED_SPOT, SIT_SCENE } from "./sitScene";
+import { PixelChair } from "./PixelChair";
+import { HERO_THEMES } from "@/components/arcade/tokens";
 
 export interface RoomInfo {
   id: number;
@@ -48,6 +52,15 @@ export function RoomScreen({
   const busy = useRef(false);
   const touch = useRef<number | null>(null);
   const walker = useRoomWalker(ROOMS[myRoom].hero.x);
+  const scene = useSitScene(walker);
+  const [sceneOn, setSceneOn] = useState(false);
+
+  // he starts the day asleep in bed (only in a room that has one)
+  useEffect(() => {
+    const bed = BED_SPOT[myRoom];
+    if (bed && !reduce) scene.sleepAt(bed.x, bed.dy);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const room = ROOMS[view];
   const locked = view > myRoom;
@@ -80,6 +93,7 @@ export function RoomScreen({
 
     busy.current = true;
     haptic(6);
+    await scene.wake();
 
     // 1 · walk to the edge; the camera starts a bit before he gets there
     if (heroHere) {
@@ -112,19 +126,21 @@ export function RoomScreen({
     busy.current = false;
   };
 
-  /** «Сісти за комп’ютер»: walk to the PC, fade, open the desk view. */
+  /** «Сісти за комп’ютер»: the cartoon from sitScene.ts, then the desk view. Tap skips it. */
   const sit = async () => {
     if (locked || busy.current) return;
     busy.current = true;
     haptic(8);
     if (!reduce) {
-      const target = ROOM_PC_X[view] ?? room.hero.x;
-      const d = target >= walker.heroX.get() ? 1 : -1;
-      walker.startSteps(d);
-      await walker.walkTo(target, M.sitWalkMs, M.easeWalkIn);
-      walker.stopSteps();
-      await new Promise<void>((resolve) => animate(walker.fade, 0, { duration: M.sitFadeMs / 1000, onComplete: resolve }));
+      setSceneOn(true);
+      await scene.play(ROOM_PC_X[view] ?? room.hero.x);
     }
+    finishSit();
+  };
+  const sitDone = useRef(false);
+  const finishSit = () => {
+    if (sitDone.current) return;
+    sitDone.current = true;
     onSit();
   };
 
@@ -183,6 +199,25 @@ export function RoomScreen({
           )}
         </motion.div>
 
+        {/* the chair from the pocket (behind the hero) */}
+        {heroRoom !== null && scene.chairOn && (
+          <motion.div
+            aria-hidden="true"
+            className="absolute left-0"
+            style={{
+              top: ROOMS[heroRoom].hero.y - 64 + 48 - 54,
+              x: scene.chair.x,
+              y: scene.chair.y,
+              scale: scene.chair.scale,
+              rotate: scene.chair.rotate,
+              scaleY: scene.chair.squash,
+              originY: 1,
+            }}
+          >
+            <PixelChair accent={HERO_THEMES[hero].acc} />
+          </motion.div>
+        )}
+
         {heroRoom !== null && (
           <motion.button
             type="button"
@@ -191,14 +226,64 @@ export function RoomScreen({
             style={{ top: ROOMS[heroRoom].hero.y - 64, x: walker.heroX, y: walker.bob, rotate: walker.lean, opacity: walker.fade }}
             onClick={() => {
               if (busy.current) return;
+              if (scene.asleep) {
+                scene.wake();
+                return;
+              }
               sfx("pearl");
               walker.hop();
             }}
           >
-            <span className="block" style={{ transform: `scaleX(${walker.facing})`, transition: "transform 80ms" }}>
-              <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
-            </span>
+            <motion.span className="block" style={{ rotate: scene.lay, y: scene.layY, scaleY: scene.squash, originX: 0.5, originY: 1 }}>
+              <span className="block" style={{ transform: `scaleX(${walker.facing})`, transition: "transform 80ms" }}>
+                <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
+              </span>
+            </motion.span>
+            {/* Z z while asleep, «!» on waking */}
+            <AnimatePresence>
+              {scene.asleep && (
+                <motion.span
+                  key="zzz"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -top-5 left-10 text-[13px] font-bold"
+                  style={{ fontFamily: FONT_PIXEL, color: "#B9B8FF" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 1, 0], y: [6, -4, -12, -18], x: [0, 4, 8, 12] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: SIT_SCENE.zzzEveryMs / 1000, repeat: Infinity }}
+                >
+                  Z<span className="text-[10px]">z</span>
+                </motion.span>
+              )}
+              {scene.alert && (
+                <motion.span
+                  key="alert"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -top-7 left-5 flex h-6 w-6 items-center justify-center rounded-md text-[15px] font-bold"
+                  style={{ fontFamily: FONT_PIXEL, background: "#ECEEF4", color: "#0E0F13" }}
+                  initial={{ scale: 0, y: 6 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 600, damping: 18 }}
+                >
+                  !
+                </motion.span>
+              )}
+            </AnimatePresence>
           </motion.button>
+        )}
+
+        {/* tap anywhere skips the cartoon */}
+        {sceneOn && SIT_SCENE.skipOnTap && (
+          <button
+            type="button"
+            aria-label="Пропустити анімацію"
+            className="absolute inset-0 z-10 cursor-pointer outline-none"
+            onClick={() => {
+              scene.skip();
+              finishSit();
+            }}
+          />
         )}
       </div>
 
