@@ -17,6 +17,7 @@ import {
   ArrowUpRight,
   ArrowLeftRight,
   KeyRound,
+  Gamepad2,
 } from "lucide-react";
 import {
   AppView,
@@ -42,6 +43,15 @@ interface LauncherModeCard {
 }
 
 const PLAY_MODES: LauncherModeCard[] = [
+  {
+    id: "mode-arcade",
+    title: "Аркади 4.0",
+    subtitle: "Змійка, Лови, Лабіринт · Хвиля тижня",
+    iconBg: "bg-pink-500/12 text-pink-300",
+    iconClass: "text-pink-300",
+    icon: Gamepad2,
+    targetTab: "arcade",
+  },
   {
     id: "mode-hangman",
     title: "Кібер-Шибениця",

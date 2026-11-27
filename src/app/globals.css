@@ -542,3 +542,41 @@ a,
     animation: none;
   }
 }
+
+/* ── Bitlynn Аркади 4.0 ───────────────────────────────────────────── */
+.arcade-root {
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.arc-primary {
+  background: var(--acc);
+  color: var(--acc-on);
+}
+.arc-primary:active:not(:disabled) {
+  background: var(--acc-pr);
+}
+.arc-primary:disabled {
+  background: #262833;
+  color: #9a9fb2;
+}
+.arc-primary:focus-visible {
+  box-shadow: 0 0 0 3px #0e0f13, 0 0 0 5px var(--acc-ring);
+}
+.arc-secondary:focus-visible,
+.arc-text:focus-visible,
+.arc-icon:focus-visible,
+.arc-card:focus-visible {
+  box-shadow: 0 0 0 2px var(--acc-ring);
+}
+@media (hover: hover) {
+  .arc-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .arc-secondary:hover,
+  .arc-icon:hover {
+    border-color: #3a3d4c !important;
+  }
+  .arc-card:hover:not(:disabled) {
+    border-color: #3a3d4c;
+  }
+}
