@@ -28,7 +28,10 @@ export type ArcadeSfx =
   | "bump"
   | "count"
   | "rankup"
-  | "wave";
+  | "wave"
+  | "stepL"
+  | "stepR"
+  | "swish";
 
 interface Note {
   f: number;
@@ -65,6 +68,14 @@ const SFX: Record<ArcadeSfx, Note[]> = {
     { f: 659, t: 0.11, d: 0.12, type: "square", v: 0.05 },
     { f: 784, t: 0.22, d: 0.12, type: "square", v: 0.05 },
     { f: 1047, t: 0.33, d: 0.32, type: "triangle", v: 0.07 },
+  ],
+  // footsteps: two soft, slightly different thumps so walking sounds natural
+  stepL: [{ f: 210, t: 0, d: 0.045, type: "triangle", v: 0.045, slideTo: 150 }],
+  stepR: [{ f: 180, t: 0, d: 0.045, type: "triangle", v: 0.04, slideTo: 130 }],
+  // camera pan between rooms: a quiet airy swish
+  swish: [
+    { f: 520, t: 0, d: 0.26, type: "sine", v: 0.022, slideTo: 260 },
+    { f: 780, t: 0.02, d: 0.2, type: "sine", v: 0.012, slideTo: 390 },
   ],
   wave: [
     { f: 392, t: 0, d: 0.3, type: "sine", v: 0.05, slideTo: 523 },

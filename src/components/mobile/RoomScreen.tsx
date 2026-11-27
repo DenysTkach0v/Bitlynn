@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { animate, motion, useReducedMotion } from "framer-motion";
 import { C, RANKS, fmt, rankIndexFor } from "@/components/arcade/tokens";
 import { useArcadeStore } from "@/components/arcade/useArcadeStore";
 import { FONT_MONO, FONT_PIXEL, LockIcon } from "@/components/arcade/ui";
 import { sfx, haptic } from "@/components/arcade/arcadeAudio";
 import { Art, At, BitsChip, Cta } from "./kit";
 import { ITEM_NAMES } from "./ShopProfileScreens";
+import { OFFSTAGE, ROOM_MOTION as M, ROOM_PC_X } from "./roomMotion";
+import { useRoomWalker, wait } from "./useRoomWalker";
 
 export interface RoomInfo {
   id: number;
@@ -32,16 +34,20 @@ export function RoomScreen({
   onSit: () => void;
   onShop: (tab: number) => void;
 }) {
-  const reduce = useReducedMotion();
+  const reducedPref = useReducedMotion();
+  const reduce = M.respectReducedMotion && !!reducedPref;
   const xp = useArcadeStore((s) => s.xp);
   const hero = useArcadeStore((s) => s.hero);
   const ownedItems = useArcadeStore((s) => s.ownedItems);
   const myRoom = rankIndexFor(xp); // 0..3
   const [view, setView] = useState(myRoom);
-  const [dir, setDir] = useState(0);
-  const [hop, setHop] = useState(0);
-  const [walking, setWalking] = useState(false);
+  /** while the camera pans, both rooms sit side by side on one strip */
+  const [pair, setPair] = useState<{ from: number; to: number; dir: 1 | -1 } | null>(null);
+  /** which room the hero is standing in (null = he is off-screen) */
+  const [heroRoom, setHeroRoom] = useState<number | null>(myRoom);
+  const busy = useRef(false);
   const touch = useRef<number | null>(null);
+  const walker = useRoomWalker(ROOMS[myRoom].hero.x);
 
   const room = ROOMS[view];
   const locked = view > myRoom;
@@ -54,19 +60,94 @@ export function RoomScreen({
   const chips = allChips.length > 3 ? [...allChips.slice(0, 2), `+${allChips.length - 2} ще`] : allChips;
   const pct = next ? Math.max(0, Math.min(100, ((xp - rank.xp) / (next.xp - rank.xp)) * 100)) : 100;
 
-  const go = (d: number) => {
+  /**
+   * Room → room: walk out → camera pans → walk in.
+   * All timings live in roomMotion.ts.
+   */
+  const go = async (d: number) => {
     const n = view + d;
-    if (n < 0 || n >= ROOMS.length) return;
-    sfx("tap");
-    setDir(d);
+    if (n < 0 || n >= ROOMS.length || busy.current) return;
+    const step = d as 1 | -1;
+    const heroHere = view <= myRoom;
+    const heroThere = n <= myRoom;
+
+    if (reduce) {
+      setView(n);
+      setHeroRoom(heroThere ? n : null);
+      walker.heroX.set(ROOMS[n].hero.x);
+      return;
+    }
+
+    busy.current = true;
+    haptic(6);
+
+    // 1 · walk to the edge; the camera starts a bit before he gets there
+    if (heroHere) {
+      walker.startSteps(step);
+      walker.walkTo(step > 0 ? OFFSTAGE.right : OFFSTAGE.left, M.walkOutMs, M.easeWalkOut);
+      await wait(M.walkOutMs * M.panOverlap);
+    }
+
+    // 2 · camera pan to the next room
+    setPair({ from: view, to: n, dir: step });
+    if (M.panSound) sfx("swish");
+    walker.artX.set(0);
+    await new Promise<void>((resolve) =>
+      animate(walker.artX, -step * 390, { duration: M.panMs / 1000, ease: M.easePan, onComplete: resolve })
+    );
     setView(n);
+    setPair(null);
+    walker.artX.set(0);
+
+    // 3 · walk in from the opposite side (not into a locked room)
+    if (heroThere) {
+      setHeroRoom(n);
+      walker.heroX.set(step > 0 ? OFFSTAGE.left : OFFSTAGE.right);
+      walker.startSteps(step);
+      await walker.walkTo(ROOMS[n].hero.x, M.walkInMs, M.easeWalkIn);
+    } else {
+      setHeroRoom(null);
+    }
+    walker.stopSteps();
+    busy.current = false;
   };
 
-  const sit = () => {
-    if (locked || walking) return;
-    setWalking(true);
+  /** «Сісти за комп’ютер»: walk to the PC, fade, open the desk view. */
+  const sit = async () => {
+    if (locked || busy.current) return;
+    busy.current = true;
     haptic(8);
-    setTimeout(onSit, reduce ? 0 : 520);
+    if (!reduce) {
+      const target = ROOM_PC_X[view] ?? room.hero.x;
+      const d = target >= walker.heroX.get() ? 1 : -1;
+      walker.startSteps(d);
+      await walker.walkTo(target, M.sitWalkMs, M.easeWalkIn);
+      walker.stopSteps();
+      await new Promise<void>((resolve) => animate(walker.fade, 0, { duration: M.sitFadeMs / 1000, onComplete: resolve }));
+    }
+    onSit();
+  };
+
+  const renderRoom = (i: number) => {
+    const r = ROOMS[i];
+    const isLocked = i > myRoom;
+    const rk = RANKS[i];
+    return (
+      <>
+        <Art name={`room${r.id}`} style={{ filter: isLocked ? "grayscale(0.7) brightness(0.45)" : undefined }} />
+        {isLocked && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "rgba(14,15,19,.8)", border: `1px solid ${C.line}` }}>
+              <LockIcon size={20} />
+            </span>
+            <b className="text-[15px]">Відкривається на ранзі {rk.label}</b>
+            <span className="text-[13px]" style={{ color: C.muted, fontFamily: FONT_MONO }}>
+              {fmt(rk.xp)} XP · у тебе {fmt(xp)}
+            </span>
+          </div>
+        )}
+      </>
+    );
   };
 
   return (
@@ -91,55 +172,34 @@ export function RoomScreen({
         <BitsChip />
       </At>
 
-      {/* room art + hero */}
+      {/* room art (camera strip) + hero layer */}
       <div className="absolute left-0 top-[64px] h-[330px] w-[390px] overflow-hidden">
-        <AnimatePresence initial={false} custom={dir}>
-          <motion.div
-            key={view}
-            className="absolute inset-0"
-            custom={dir}
-            initial={reduce ? { opacity: 0 } : { x: dir * 390 }}
-            animate={reduce ? { opacity: 1 } : { x: 0 }}
-            exit={reduce ? { opacity: 0 } : { x: -dir * 390 }}
-            transition={{ type: "spring", stiffness: 260, damping: 32 }}
+        <motion.div className="absolute inset-0" style={{ x: walker.artX }}>
+          <div className="absolute inset-0">{renderRoom(pair ? pair.from : view)}</div>
+          {pair && (
+            <div className="absolute top-0 h-full w-full" style={{ left: pair.dir * 390 }}>
+              {renderRoom(pair.to)}
+            </div>
+          )}
+        </motion.div>
+
+        {heroRoom !== null && (
+          <motion.button
+            type="button"
+            aria-label="Твій аксолотль — торкнись"
+            className="absolute left-0 outline-none"
+            style={{ top: ROOMS[heroRoom].hero.y - 64, x: walker.heroX, y: walker.bob, rotate: walker.lean, opacity: walker.fade }}
+            onClick={() => {
+              if (busy.current) return;
+              sfx("pearl");
+              walker.hop();
+            }}
           >
-            <Art name={`room${room.id}`} style={{ filter: locked ? "grayscale(0.7) brightness(0.45)" : undefined }} />
-            {!locked && (
-              <motion.button
-                type="button"
-                aria-label="Твій аксолотль — торкнись"
-                className="absolute outline-none"
-                style={{ left: room.hero.x, top: room.hero.y - 64 }}
-                onClick={() => {
-                  sfx("pearl");
-                  setHop((h) => h + 1);
-                }}
-                animate={
-                  walking && !reduce
-                    ? { x: 150 - room.hero.x, y: -18, scale: 0.85, opacity: 0 }
-                    : reduce
-                    ? {}
-                    : { y: hop ? [0, -16, 0, -6, 0] : 0 }
-                }
-                transition={walking ? { duration: 0.5, ease: "easeIn" } : { duration: 0.6 }}
-                key={`hero-${hop}`}
-              >
-                <Art name={`hero${room.id}_${hero}`} />
-              </motion.button>
-            )}
-            {locked && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "rgba(14,15,19,.8)", border: `1px solid ${C.line}` }}>
-                  <LockIcon size={20} />
-                </span>
-                <b className="text-[15px]">Відкривається на ранзі {rank.label}</b>
-                <span className="text-[13px]" style={{ color: C.muted, fontFamily: FONT_MONO }}>
-                  {fmt(rank.xp)} XP · у тебе {fmt(xp)}
-                </span>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+            <span className="block" style={{ transform: `scaleX(${walker.facing})`, transition: "transform 80ms" }}>
+              <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
+            </span>
+          </motion.button>
+        )}
       </div>
 
       {view > 0 && (
