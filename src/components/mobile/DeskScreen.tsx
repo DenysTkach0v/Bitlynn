@@ -1,5 +1,7 @@
 "use client";
 
+import { loop } from "./loop";
+
 import React, { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { C, REWARD_RULES } from "@/components/arcade/tokens";
@@ -36,7 +38,7 @@ export function DeskScreen({ onBack, onBooted }: { onBack: () => void; onBooted:
       <At x={0} y={64} w={390} h={390}>
         <Art name="desk" />
         <div className="absolute" style={{ left: 168, top: 235 - 64 }}>
-          <motion.div animate={booting && !reduce ? { y: [0, -2, 0] } : undefined} transition={{ duration: 0.3, repeat: 3 }}>
+          <motion.div animate={booting && !reduce ? { y: loop([0, -2, 0]) } : undefined} transition={{ duration: 0.3, repeat: 3 }}>
             <Art name={`heroDesk_${hero}`} />
           </motion.div>
         </div>
@@ -75,7 +77,7 @@ export function DeskScreen({ onBack, onBooted }: { onBack: () => void; onBooted:
         {booting ? (
           <span className="flex items-center gap-2" style={{ fontFamily: FONT_MONO }}>
             BitOS
-            <motion.span animate={reduce ? undefined : { opacity: [0.2, 1, 0.2] }} transition={{ duration: 0.8, repeat: Infinity }}>
+            <motion.span animate={reduce ? undefined : { opacity: loop([0.2, 1, 0.2]) }} transition={{ duration: 0.8, repeat: Infinity }}>
               ···
             </motion.span>
           </span>

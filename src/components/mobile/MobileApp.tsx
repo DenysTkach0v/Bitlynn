@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
+import { ROOM_MOTION } from "./roomMotion";
 import { GameId, gameOfTheDayFallback } from "./route";
 import { useArcadeStore } from "@/components/arcade/useArcadeStore";
 import { themeVars } from "@/components/arcade/ui";
@@ -53,6 +54,8 @@ export function MobileApp() {
   if (!hydrated) return <Stage style={themeVars(hero)}>{null}</Stage>;
 
   return (
+    // «Зменшити рух» на пристрої: поважаємо лише якщо так задано в roomMotion.ts
+    <MotionConfig reducedMotion={ROOM_MOTION.respectReducedMotion ? "user" : "never"}>
     <Stage style={themeVars(hero)}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
@@ -83,5 +86,6 @@ export function MobileApp() {
         </motion.div>
       </AnimatePresence>
     </Stage>
+    </MotionConfig>
   );
 }

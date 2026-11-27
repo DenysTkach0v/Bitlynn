@@ -6,6 +6,7 @@ import { buildAxoPalette, getAxoGrid, gridToRects } from "@/components/arcade/ax
 import { tones } from "@/components/arcade/games/pixel";
 import { Bed, SLEEP } from "./sitScene";
 import { ROOM_MOTION } from "./roomMotion";
+import { loop } from "./loop";
 
 /**
  * The hero asleep in bed: body lies flat under a blanket, only the head rests
@@ -67,7 +68,7 @@ export function Sleeper({ bed, accent, eyes, blanketOff }: { bed: Bed; accent: s
             ? { x: SLEEP.blanketOff.dx, y: SLEEP.blanketOff.dy, rotate: SLEEP.blanketOff.rotate, opacity: 0, scaleY: 1 }
             : reduce
             ? {}
-            : { scaleY: [1, SLEEP.breathScale, 1] }
+            : { scaleY: loop([1, SLEEP.breathScale, 1]) }
         }
         transition={
           blanketOff

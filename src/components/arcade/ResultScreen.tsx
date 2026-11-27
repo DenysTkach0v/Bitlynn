@@ -1,5 +1,7 @@
 "use client";
 
+import { loop } from "@/components/mobile/loop";
+
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -122,7 +124,7 @@ export function ResultScreen({
         <div className="mt-3 flex items-center justify-center gap-4">
           <motion.div
             initial={reduce ? false : { y: 0 }}
-            animate={reduce ? undefined : { y: [0, -14, 0, -6, 0] }}
+            animate={reduce ? undefined : { y: loop([0, -14, 0, -6, 0]) }}
             transition={{ duration: 0.8, delay: 0.1 }}
           >
             <AxoAvatar hoodie={accent} px={3} eyes={ft === total ? "blink" : "normal"} title="Твій аксолотль" />

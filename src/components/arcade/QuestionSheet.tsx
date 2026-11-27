@@ -1,5 +1,7 @@
 "use client";
 
+import { loop } from "@/components/mobile/loop";
+
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { C } from "./tokens";
@@ -122,7 +124,7 @@ export function QuestionSheetBody({
                 reduce
                   ? { opacity: dim ? 0.45 : 1 }
                   : shaking
-                  ? { x: [0, -5, 5, -3, 3, 0], opacity: 1 }
+                  ? { x: loop([0, -5, 5, -3, 3, 0]), opacity: 1 }
                   : { x: 0, opacity: dim ? 0.45 : 1, scale: isPressed ? 0.98 : 1 }
               }
               transition={shaking ? { duration: 0.32 } : { duration: 0.12 }}

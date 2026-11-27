@@ -1,5 +1,7 @@
 "use client";
 
+import { loop } from "./loop";
+
 import React, { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { C, HERO_ORDER, HERO_THEMES, HeroColorId, REWARD_RULES, fmt, nextRank, rankById, rankFor } from "@/components/arcade/tokens";
@@ -137,7 +139,7 @@ export function ShopScreen({ onBack, initialTab = 0 }: { onBack: () => void; ini
                 <motion.span
                   className="flex h-16 items-center justify-center rounded-[10px]"
                   style={{ background: C.bg }}
-                  animate={bought === it.id && !reduce ? { scale: [1, 1.15, 1] } : undefined}
+                  animate={bought === it.id && !reduce ? { scale: loop([1, 1.15, 1]) } : undefined}
                 >
                   <Art name={`item_${it.id}`} />
                 </motion.span>

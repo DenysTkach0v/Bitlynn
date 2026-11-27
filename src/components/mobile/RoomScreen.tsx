@@ -14,6 +14,9 @@ import { useSitScene } from "./useSitScene";
 import { BED, FLOOR_Y, SIT_SCENE } from "./sitScene";
 import { Sleeper } from "./Sleeper";
 import { Ambience } from "./Ambience";
+import { IdleActor, useIdle } from "./IdleActor";
+import { HERO_PAL } from "./idleConfig";
+import { loop } from "./loop";
 import { PixelChair } from "./PixelChair";
 import { HERO_THEMES } from "@/components/arcade/tokens";
 
@@ -56,6 +59,9 @@ export function RoomScreen({
   const walker = useRoomWalker(ROOMS[myRoom].hero.x);
   const scene = useSitScene(walker);
   const [sceneOn, setSceneOn] = useState(false);
+  const [travelling, setTravelling] = useState(false);
+  // idle moves only while he simply stands in the room he is shown in
+  const idle = useIdle(heroRoom !== null && heroRoom === view && !scene.inBed && !sceneOn && !travelling && !pair);
 
   // he starts the day asleep in bed (only in a room that has one)
   useEffect(() => {
@@ -93,6 +99,7 @@ export function RoomScreen({
     }
 
     busy.current = true;
+    setTravelling(true);
     haptic(6);
     await scene.wake();
 
@@ -125,6 +132,7 @@ export function RoomScreen({
     }
     walker.stopSteps();
     busy.current = false;
+    setTravelling(false);
   };
 
   /** «Сісти за комп’ютер»: the cartoon from sitScene.ts, then the desk view. Tap skips it. */
@@ -254,7 +262,9 @@ export function RoomScreen({
               style={{ y: scene.layY, scaleY: scene.squash, scaleX: scene.swivel, originX: 0.5, originY: 1, opacity: scene.inBed || scene.back ? 0 : 1 }}
             >
               <span className="block" style={{ transform: `scaleX(${walker.facing})`, transition: "transform 80ms" }}>
-                <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
+                <IdleActor move={idle.move} palette={HERO_PAL[hero]} onDone={idle.done}>
+                  <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
+                </IdleActor>
               </span>
             </motion.span>
             {/* Z z while asleep, «!» on waking */}
@@ -266,7 +276,7 @@ export function RoomScreen({
                   className="pointer-events-none absolute -top-5 left-10 text-[13px] font-bold"
                   style={{ fontFamily: FONT_PIXEL, color: "#B9B8FF" }}
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 1, 1, 0], y: [6, -4, -12, -18], x: [0, 4, 8, 12] }}
+                  animate={{ opacity: loop([0, 1, 1, 0]), y: [6, -4, -12, -18], x: [0, 4, 8, 12] }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: SIT_SCENE.zzzEveryMs / 1000, repeat: Infinity }}
                 >
