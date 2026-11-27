@@ -36,16 +36,16 @@ const pixelify = Pixelify_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Bitlynn — Мобільний кібер-клас, ігри та P2P-допомога",
+  title: "Bitlynn — підводна квартира програміста",
   description:
-    "Інтерактивний мобільний вебпрототип для учнів 10–14 років та вчителів: Кібер-Шибениця, Zero-Repeat Бліц, Кібер-Екіпаж 15–18, P2P-біржа та турніри.",
+    "Мобільне демо Bitlynn для дітей 9+: кімната-лобі, комп’ютер BitOS, режими навчання та аркади з питаннями.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#050914",
+  themeColor: "#0E0F13",
 };
 
 export default function RootLayout({

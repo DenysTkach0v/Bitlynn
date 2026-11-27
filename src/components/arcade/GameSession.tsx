@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GameId, HERO_THEMES, gameById, plural } from "./tokens";
-import { Question, bankFor, idOf, materialize, shuffleQuestion, sourceById } from "./questions";
+import { DIRECTIONS, Question, bankFor, idOf, materialize, shuffleQuestion, sourceById } from "./questions";
 import { SessionSummary, StepResult, daysBetween, dateKey, dueReviews, useArcadeStore } from "./useArcadeStore";
 import { QuietHud, Sheet } from "./ui";
 import { QuestionSheetBody } from "./QuestionSheet";
@@ -24,8 +24,8 @@ interface Prepared {
 const MAX_REVIEWS_PER_ROUND = 2;
 
 /** Mistakes come back first (up to 2 a round), the rest are fresh questions. */
-function prepareQuestions(game: "snake" | "maze", count: number): Prepared[] {
-  const bank = bankFor(game);
+function prepareQuestions(count: number): Prepared[] {
+  const bank = bankFor(useArcadeStore.getState().direction);
   const bankIds = new Set(bank.map(idOf));
   const { reviews } = useArcadeStore.getState();
   const today = dateKey();
@@ -57,11 +57,17 @@ const GAME_COMPONENTS: Partial<Record<GameId, React.ComponentType<GameProps>>> =
 
 type Phase = "start" | "play" | "result";
 
-export function GameSession({ game, onExit }: { game: GameId; onExit: () => void }) {
+export function GameSession({ game, onExit, onRoom }: { game: GameId; onExit: () => void; onRoom?: () => void }) {
   const reduce = useReducedMotion();
-  const meta = gameById(game);
+  const baseMeta = gameById(game);
   const hero = useArcadeStore((s) => s.hero);
   const reviews = useArcadeStore((s) => s.reviews);
+  const direction = useArcadeStore((s) => s.direction);
+  // the learning mode picked on the PC decides the questions (and the tag shown)
+  const meta =
+    game === "snake" || game === "maze"
+      ? { ...baseMeta, tag: DIRECTIONS.find((d) => d.id === direction)?.tag ?? baseMeta.tag }
+      : baseMeta;
   const finishSession = useArcadeStore((s) => s.finishSession);
   const accent = HERO_THEMES[hero].acc;
 
@@ -76,7 +82,7 @@ export function GameSession({ game, onExit }: { game: GameId; onExit: () => void
   const questionGame = game === "snake" || game === "maze";
   const total = meta.steps;
   const dueCount = questionGame
-    ? dueReviews(reviews).filter((r) => new Set(bankFor(game).map(idOf)).has(r.id)).length
+    ? dueReviews(reviews).filter((r) => new Set(bankFor(direction).map(idOf)).has(r.id)).length
     : 0;
 
   const begin = useCallback(() => {
@@ -84,7 +90,7 @@ export function GameSession({ game, onExit }: { game: GameId; onExit: () => void
     setSteps([]);
     setSummary(null);
     setSheet(null);
-    if (game === "snake" || game === "maze") setQuestions(prepareQuestions(game, total));
+    if (game === "snake" || game === "maze") setQuestions(prepareQuestions(total));
     setRunId((n) => n + 1);
     setPhase("play");
   }, [game, total]);
@@ -164,7 +170,7 @@ export function GameSession({ game, onExit }: { game: GameId; onExit: () => void
 
         {phase === "result" && summary && (
           <motion.div key="result" className="absolute inset-0" initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
-            <ResultScreen meta={meta} summary={summary} accent={accent} onAgain={begin} onRoom={onExit} />
+            <ResultScreen meta={meta} summary={summary} accent={accent} onAgain={begin} onRoom={onRoom ?? onExit} />
           </motion.div>
         )}
       </AnimatePresence>

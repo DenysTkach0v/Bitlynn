@@ -3,7 +3,7 @@
  * every field is a single pixel grid with an integer scale, three tones lit
  * from the top-left, and a coloured (not black) outline.
  */
-import { mixHex, shadeHex } from "@/components/crew/axolotlSprite";
+import { mixHex, shadeHex } from "../axolotlSprite";
 
 type Dir = "up" | "down" | "left" | "right";
 const DV: Record<Dir, { x: number; y: number }> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };

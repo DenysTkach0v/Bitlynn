@@ -1,7 +1,16 @@
 "use client";
 
-import { getSharedAudioContext } from "@/lib/feedback";
 import { useArcadeStore } from "./useArcadeStore";
+
+let ctxRef: AudioContext | null = null;
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return null;
+  if (!ctxRef) ctxRef = new Ctx();
+  if (ctxRef.state === "suspended") ctxRef.resume().catch(() => {});
+  return ctxRef;
+}
 
 /**
  * Soft, short UI sounds. No buzzers: «Майже!» is a gentle low «hm» note,

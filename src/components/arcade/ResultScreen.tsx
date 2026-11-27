@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useBitlynnStore } from "@/store/useBitlynnStore";
 import {
   C,
   GameMeta,
@@ -81,7 +80,7 @@ export function ResultScreen({
   const fromPct = summary.rankUp ? 0 : nxt ? ((Math.max(summary.prevXp, floor) - floor) / (ceil - floor)) * 100 : 100;
   const toPct = nxt ? ((summary.newXp - floor) / (ceil - floor)) * 100 : 100;
 
-  const wallet = useBitlynnStore((s) => s.bits);
+  const wallet = useArcadeStore((s) => s.bits);
   const owned = useArcadeStore((s) => s.ownedHeroes);
   const playedDays = summary.waveDaysThisWeek;
 

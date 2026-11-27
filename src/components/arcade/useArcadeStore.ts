@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { useBitlynnStore } from "@/store/useBitlynnStore";
 import {
   GameId,
   HERO_THEMES,
@@ -14,6 +13,7 @@ import {
   rankIndexFor,
   stepXp,
 } from "./tokens";
+import type { Direction } from "./questions";
 
 /* ───────────────────────── dates ───────────────────────── */
 
@@ -91,6 +91,10 @@ export interface SessionSummary {
 
 interface ArcadeState {
   xp: number;
+  bits: number;
+  direction: Direction;
+  ownedItems: string[];
+  gamesToday: { date: string; count: number };
   hero: HeroColorId;
   ownedHeroes: HeroColorId[];
   playedDays: string[];
@@ -109,6 +113,8 @@ interface ArcadeState {
   toggleRest: () => void;
   ensureRestWeek: () => void;
   setSound: (on: boolean) => void;
+  setDirection: (d: Direction) => void;
+  buyItem: (id: string, price: number) => "ok" | "no-bits" | "owned";
 }
 
 /* ───────────────────────── store ───────────────────────── */
@@ -119,6 +125,10 @@ export const useArcadeStore = create<ArcadeState>()(
       // Demo seed: close to «Джун II», so the very first round shows a rank-up
       // and unlocks the maze. Thresholds are from the progress audit (stage 2).
       xp: 520,
+      bits: 340,
+      direction: "python",
+      ownedItems: ["laptop", "mattress"],
+      gamesToday: { date: "", count: 0 },
       hero: "pink",
       ownedHeroes: ["pink"],
       playedDays: [],
@@ -190,15 +200,17 @@ export const useArcadeStore = create<ArcadeState>()(
 
         set({
           xp: newXp,
+          bits: s.bits + bitsGained + waveBonus,
           playedDays: playedDays.slice(-120),
           waveRewardedWeeks: waveGoalJustHit ? [...s.waveRewardedWeeks, wk] : s.waveRewardedWeeks,
           reviews,
           best: isBest ? { ...s.best, [game]: firstTryCount } : s.best,
           sessions: s.sessions + 1,
+          gamesToday: partial
+            ? s.gamesToday
+            : { date: today, count: s.gamesToday.date === today ? s.gamesToday.count + 1 : 1 },
         });
 
-        // Біти живуть у спільному гаманці платформи.
-        useBitlynnStore.setState((m) => ({ bits: m.bits + bitsGained + waveBonus }));
 
         return {
           game,
@@ -236,10 +248,8 @@ export const useArcadeStore = create<ArcadeState>()(
           set({ ownedHeroes: [...s.ownedHeroes, id], hero: id });
           return "ok";
         }
-        const wallet = useBitlynnStore.getState().bits;
-        if (wallet < theme.price) return "no-bits";
-        useBitlynnStore.setState((m) => ({ bits: m.bits - theme.price }));
-        set({ ownedHeroes: [...s.ownedHeroes, id], hero: id });
+        if (s.bits < theme.price) return "no-bits";
+        set({ bits: s.bits - theme.price, ownedHeroes: [...s.ownedHeroes, id], hero: id });
         return "ok";
       },
 
@@ -260,12 +270,26 @@ export const useArcadeStore = create<ArcadeState>()(
       },
 
       setSound: (on) => set({ soundOn: on }),
+
+      setDirection: (d) => set({ direction: d }),
+
+      buyItem: (id, price) => {
+        const s = get();
+        if (s.ownedItems.includes(id)) return "owned";
+        if (s.bits < price) return "no-bits";
+        set({ bits: s.bits - price, ownedItems: [...s.ownedItems, id] });
+        return "ok";
+      },
     }),
     {
-      name: "bitlynn-arcade-v1",
+      name: "bitlynn-mobile-v1",
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         xp: s.xp,
+        bits: s.bits,
+        direction: s.direction,
+        ownedItems: s.ownedItems,
+        gamesToday: s.gamesToday,
         hero: s.hero,
         ownedHeroes: s.ownedHeroes,
         playedDays: s.playedDays,

@@ -4,7 +4,6 @@ import React from "react";
 import { C } from "./tokens";
 import { FONT_UI, PrimaryButton, SecondaryButton, SoundIcon, TextButton } from "./ui";
 import { useArcadeStore } from "./useArcadeStore";
-import { setSoundEnabled } from "@/lib/feedback";
 
 /** Спільний екран №3 — пауза. Червоний — лише на «Вийти без збереження». */
 export function PauseSheetBody({
@@ -37,7 +36,6 @@ export function PauseSheetBody({
         aria-checked={soundOn}
         onClick={() => {
           setSound(!soundOn);
-          setSoundEnabled(!soundOn);
         }}
         className="arc-card mt-4 flex h-16 items-center gap-3 rounded-2xl border px-4 text-left outline-none"
         style={{ borderColor: C.line, background: C.bg, color: C.text }}

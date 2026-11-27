@@ -326,6 +326,116 @@ export const WEB_BANK: QuestionSource[] = [
   },
 ];
 
+const genSequence = (): Question => {
+  const start = rnd(1, 6);
+  const step = rnd(2, 5);
+  const seq = [0, 1, 2, 3].map((i) => start + i * step);
+  const right = start + 4 * step;
+  const { options, correct } = uniqueOptions(String(right), [String(right + 1), String(right - step + 1), String(seq[3] * 2)]);
+  return {
+    id: "gen-sequence",
+    tag: "#послідовності",
+    text: "Яке число наступне?",
+    code: seq.join(", ") + ", ?",
+    options,
+    correct,
+    hint: "Подивись, на скільки зростає кожне наступне число.",
+    explain: `Кожне число більше за попереднє на ${step}: ${seq[3]} + ${step} = ${right}.`,
+  };
+};
+
+const genIfElse = (): Question => {
+  const x = rnd(1, 12);
+  const limit = rnd(4, 9);
+  const right = x > limit ? "велике" : "мале";
+  return {
+    id: "gen-ifelse",
+    tag: "#умови",
+    text: "Що виведе програма?",
+    code: `x = ${x}\nif x > ${limit}:\n    print("велике")\nelse:\n    print("мале")`,
+    options: [right, right === "велике" ? "мале" : "велике", "нічого", "помилку"],
+    correct: 0,
+    hint: `Порівняй ${x} і ${limit}: чи справді ${x} більше?`,
+    explain: `${x} ${x > limit ? ">" : "≤"} ${limit}, тому виконується гілка «${right}».`,
+  };
+};
+
+export const LOGIC_BANK: QuestionSource[] = [
+  genSequence,
+  genIfElse,
+  {
+    id: "logic-and",
+    tag: "#логіка",
+    text: "Двері відчиняються, якщо є ключ І відомий код. Ключ є, коду немає. Що буде?",
+    options: ["Двері зачинені", "Двері відчиняться", "Відчиняться наполовину", "Невідомо"],
+    correct: 0,
+    hint: "«І» означає, що потрібні обидві умови одночасно.",
+    explain: "Для «І» мають виконатися обидві умови, а коду немає.",
+  },
+  {
+    id: "logic-or",
+    tag: "#логіка",
+    text: "Світло вмикається, якщо натиснути кнопку АБО плеснути. Ти плеснув. Що буде?",
+    options: ["Світло ввімкнеться", "Нічого", "Треба ще кнопку", "Блимне й згасне"],
+    correct: 0,
+    hint: "«АБО» — достатньо однієї умови.",
+    explain: "Для «АБО» вистачає однієї виконаної умови.",
+  },
+  {
+    id: "logic-not",
+    tag: "#логіка",
+    text: "Що означає not True?",
+    options: ["False (неправда)", "True (правда)", "Нуль", "Помилку"],
+    correct: 0,
+    hint: "not перевертає значення на протилежне.",
+    explain: "not змінює True на False і навпаки.",
+  },
+  {
+    id: "logic-algo",
+    tag: "#алгоритми",
+    text: "Що таке алгоритм?",
+    options: ["Чіткий план кроків для задачі", "Назва комп’ютера", "Вид вірусу", "Мова програмування"],
+    correct: 0,
+    hint: "Згадай рецепт: спочатку одне, потім інше.",
+    explain: "Алгоритм — послідовність кроків, які ведуть до результату.",
+  },
+  {
+    id: "logic-loop",
+    tag: "#цикли",
+    text: "Робот робить «крок» 4 рази поспіль. Як записати це коротше?",
+    options: ["Повторити 4 рази: крок", "крок крок", "Якщо крок, то 4", "крок + 4"],
+    correct: 0,
+    hint: "Однакові дії, що повторюються, — це цикл.",
+    explain: "Цикл «повторити N разів» замінює однакові рядки.",
+  },
+  {
+    id: "logic-bug",
+    tag: "#дебаг",
+    text: "Програма мала намалювати квадрат, а намалювала лише 3 сторони. Що не так?",
+    options: ["Цикл повторюється 3 рази, а не 4", "Комп’ютер зламався", "Забули колір", "Квадрат завеликий"],
+    correct: 0,
+    hint: "Скільки сторін у квадрата і скільки разів повторився крок?",
+    explain: "У квадрата 4 сторони, тож цикл має бути на 4 повтори.",
+  },
+  {
+    id: "logic-order",
+    tag: "#алгоритми",
+    text: "Який порядок правильний, щоб надіслати лист?",
+    options: ["Написати → адреса → надіслати", "Надіслати → написати → адреса", "Адреса → надіслати → написати", "Будь-який"],
+    correct: 0,
+    hint: "Не можна надіслати те, що ще не написано.",
+    explain: "Кроки алгоритму мають логічний порядок.",
+  },
+];
+
+export type Direction = "python" | "web" | "logic";
+
+export const DIRECTIONS: { id: Direction; label: string; tag: string }[] = [
+  { id: "python", label: "Python", tag: "#python" },
+  { id: "web", label: "Веб", tag: "#html" },
+  { id: "logic", label: "Логіка", tag: "#логіка" },
+];
+
 export interface CatchCategory {
   id: string;
   title: string;
@@ -405,8 +515,8 @@ export function shuffleQuestion(q: Question): Question {
   };
 }
 
-export function bankFor(game: "snake" | "maze"): QuestionSource[] {
-  return game === "snake" ? PYTHON_BANK : WEB_BANK;
+export function bankFor(dir: Direction): QuestionSource[] {
+  return dir === "python" ? PYTHON_BANK : dir === "web" ? WEB_BANK : LOGIC_BANK;
 }
 
 const GENERATORS: Record<string, () => Question> = {
@@ -415,6 +525,8 @@ const GENERATORS: Record<string, () => Question> = {
   "gen-len": genLen,
   "gen-index": genIndex,
   "gen-bytes": genBytes,
+  "gen-sequence": genSequence,
+  "gen-ifelse": genIfElse,
 };
 
 export function idOf(src: QuestionSource): string {
@@ -424,5 +536,5 @@ export function idOf(src: QuestionSource): string {
 
 export function sourceById(id: string): QuestionSource | undefined {
   if (GENERATORS[id]) return GENERATORS[id];
-  return [...PYTHON_BANK, ...WEB_BANK].find((s) => typeof s !== "function" && s.id === id);
+  return [...PYTHON_BANK, ...WEB_BANK, ...LOGIC_BANK].find((s) => typeof s !== "function" && s.id === id);
 }

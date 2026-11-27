@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { buildAxoPalette, getAxoGrid, gridToRects, AxoEyes, AxoFrame } from "@/components/crew/axolotlSprite";
+import { buildAxoPalette, getAxoGrid, gridToRects, AxoEyes, AxoFrame } from "./axolotlSprite";
 import { C, HERO_THEMES, HeroColorId } from "./tokens";
 import { sfx, haptic } from "./arcadeAudio";
 

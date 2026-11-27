@@ -1,0 +1,252 @@
+"use client";
+
+import React, { useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { C, RANKS, fmt, rankIndexFor } from "@/components/arcade/tokens";
+import { useArcadeStore } from "@/components/arcade/useArcadeStore";
+import { FONT_MONO, FONT_PIXEL, LockIcon } from "@/components/arcade/ui";
+import { sfx, haptic } from "@/components/arcade/arcadeAudio";
+import { Art, At, BitsChip, Cta } from "./kit";
+import { ITEM_NAMES } from "./ShopProfileScreens";
+
+export interface RoomInfo {
+  id: number;
+  name: string;
+  items: string[];
+  opens: string;
+  hero: { x: number; y: number };
+}
+
+/** Чотири кімнати з канвасу: ранг відкриває кімнату й нові ігри. */
+export const ROOMS: RoomInfo[] = [
+  { id: 1, name: "Капсула", items: ["Старий ноутбук", "Матрац", "Ілюмінатор"], opens: "Змійка, Лови", hero: { x: 78, y: 238 } },
+  { id: 2, name: "Студія", items: ["Робочий ПК", "Рибка", "Книжкова полиця"], opens: "Підводний лабіринт", hero: { x: 120, y: 277 } },
+  { id: 3, name: "Dev-лофт", items: ["Два монітори", "Міні-сервер", "Краб"], opens: "Доставка, сервер", hero: { x: 210, y: 277 } },
+  { id: 4, name: "Купол", items: ["Дата-центр", "Голо-стіл", "Медуза"], opens: "Фабрика, дата-центр", hero: { x: 156, y: 277 } },
+];
+
+export function RoomScreen({
+  onSit,
+  onShop,
+}: {
+  onSit: () => void;
+  onShop: (tab: number) => void;
+}) {
+  const reduce = useReducedMotion();
+  const xp = useArcadeStore((s) => s.xp);
+  const hero = useArcadeStore((s) => s.hero);
+  const ownedItems = useArcadeStore((s) => s.ownedItems);
+  const myRoom = rankIndexFor(xp); // 0..3
+  const [view, setView] = useState(myRoom);
+  const [dir, setDir] = useState(0);
+  const [hop, setHop] = useState(0);
+  const [walking, setWalking] = useState(false);
+  const touch = useRef<number | null>(null);
+
+  const room = ROOMS[view];
+  const locked = view > myRoom;
+  const rank = RANKS[view];
+  const next = RANKS[view + 1];
+  const nextRoom = ROOMS[view + 1];
+  // room items + what the child bought in the shop (one line: extra ones fold into «+N»)
+  const bought = view === myRoom ? ownedItems.map((id) => ITEM_NAMES[id]).filter((n) => n && !room.items.includes(n) && n !== "Старий ноутбук" && n !== "Матрац") : [];
+  const allChips = [...bought, ...room.items];
+  const chips = allChips.length > 3 ? [...allChips.slice(0, 2), `+${allChips.length - 2} ще`] : allChips;
+  const pct = next ? Math.max(0, Math.min(100, ((xp - rank.xp) / (next.xp - rank.xp)) * 100)) : 100;
+
+  const go = (d: number) => {
+    const n = view + d;
+    if (n < 0 || n >= ROOMS.length) return;
+    sfx("tap");
+    setDir(d);
+    setView(n);
+  };
+
+  const sit = () => {
+    if (locked || walking) return;
+    setWalking(true);
+    haptic(8);
+    setTimeout(onSit, reduce ? 0 : 520);
+  };
+
+  return (
+    <div
+      className="absolute inset-0"
+      onTouchStart={(e) => (touch.current = e.touches[0].clientX)}
+      onTouchEnd={(e) => {
+        if (touch.current === null) return;
+        const dx = e.changedTouches[0].clientX - touch.current;
+        if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+        touch.current = null;
+      }}
+    >
+      {/* top: rank + bits */}
+      <At x={12} r={12} y={12} h={48} className="flex items-center justify-between">
+        <span
+          className="flex h-10 items-center rounded-[10px] px-3 text-[17px] font-bold"
+          style={{ fontFamily: FONT_PIXEL, background: "var(--acc-soft)", border: "1px solid var(--acc)", color: "var(--acc-ring)" }}
+        >
+          {RANKS[myRoom].label}
+        </span>
+        <BitsChip />
+      </At>
+
+      {/* room art + hero */}
+      <div className="absolute left-0 top-[64px] h-[330px] w-[390px] overflow-hidden">
+        <AnimatePresence initial={false} custom={dir}>
+          <motion.div
+            key={view}
+            className="absolute inset-0"
+            custom={dir}
+            initial={reduce ? { opacity: 0 } : { x: dir * 390 }}
+            animate={reduce ? { opacity: 1 } : { x: 0 }}
+            exit={reduce ? { opacity: 0 } : { x: -dir * 390 }}
+            transition={{ type: "spring", stiffness: 260, damping: 32 }}
+          >
+            <Art name={`room${room.id}`} style={{ filter: locked ? "grayscale(0.7) brightness(0.45)" : undefined }} />
+            {!locked && (
+              <motion.button
+                type="button"
+                aria-label="Твій аксолотль — торкнись"
+                className="absolute outline-none"
+                style={{ left: room.hero.x, top: room.hero.y - 64 }}
+                onClick={() => {
+                  sfx("pearl");
+                  setHop((h) => h + 1);
+                }}
+                animate={
+                  walking && !reduce
+                    ? { x: 150 - room.hero.x, y: -18, scale: 0.85, opacity: 0 }
+                    : reduce
+                    ? {}
+                    : { y: hop ? [0, -16, 0, -6, 0] : 0 }
+                }
+                transition={walking ? { duration: 0.5, ease: "easeIn" } : { duration: 0.6 }}
+                key={`hero-${hop}`}
+              >
+                <Art name={`hero${room.id}_${hero}`} />
+              </motion.button>
+            )}
+            {locked && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "rgba(14,15,19,.8)", border: `1px solid ${C.line}` }}>
+                  <LockIcon size={20} />
+                </span>
+                <b className="text-[15px]">Відкривається на ранзі {rank.label}</b>
+                <span className="text-[13px]" style={{ color: C.muted, fontFamily: FONT_MONO }}>
+                  {fmt(rank.xp)} XP · у тебе {fmt(xp)}
+                </span>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {view > 0 && (
+        <button
+          type="button"
+          aria-label="Попередня кімната"
+          onClick={() => go(-1)}
+          className="arc-icon absolute left-2 top-[205px] flex h-12 w-12 items-center justify-center rounded-full border outline-none"
+          style={{ borderColor: C.line, background: "rgba(14,15,19,0.78)", color: C.text }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      )}
+      {view < ROOMS.length - 1 && (
+        <button
+          type="button"
+          aria-label="Наступна кімната"
+          onClick={() => go(1)}
+          className="arc-icon absolute right-2 top-[205px] flex h-12 w-12 items-center justify-center rounded-full border outline-none"
+          style={{ borderColor: C.line, background: "rgba(14,15,19,0.78)", color: C.text }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      )}
+
+      {/* dots */}
+      <At x={0} r={0} y={404} className="flex justify-center gap-1.5">
+        {ROOMS.map((r, i) => (
+          <motion.span
+            key={r.id}
+            className="h-2 rounded-full"
+            animate={{ width: i === view ? 22 : 8 }}
+            style={{ background: i === view ? "var(--acc)" : "#3A3D4C" }}
+          />
+        ))}
+      </At>
+
+      <At x={20} r={20} y={420} className="flex items-baseline justify-between">
+        <h2 className="m-0 text-[26px] font-bold">{room.name}</h2>
+        <span className="text-[13px]" style={{ fontFamily: FONT_MONO, color: C.muted }}>
+          кімната {room.id} з 4{view === myRoom ? " · ти тут" : ""}
+        </span>
+      </At>
+
+      <At x={20} r={20} y={460} className="flex flex-wrap gap-2">
+        {chips.map((it) => (
+          <span key={it} className="rounded-lg border px-2.5 py-[5px] text-[13px]" style={{ background: C.card, borderColor: C.line, opacity: locked ? 0.6 : 1 }}>
+            {it}
+          </span>
+        ))}
+      </At>
+
+      <At x={20} r={20} y={498} className="flex flex-col gap-2 rounded-xl border px-3.5 py-2.5 leading-[18px]" style={{ background: C.card, borderColor: C.line }}>
+        <div className="flex justify-between gap-2 text-[14px]">
+          <span style={{ color: C.muted }}>Відкриває</span>
+          <b>{room.opens}</b>
+        </div>
+        <div className="h-px" style={{ background: C.line }} />
+        {next && nextRoom ? (
+          <>
+            <div className="flex justify-between gap-2 text-[14px]">
+              <span>
+                <b>Далі: {nextRoom.name}</b> <span style={{ color: C.muted }}>· ранг {next.label}</span>
+              </span>
+              <span className="text-[13px]" style={{ fontFamily: FONT_MONO, color: "var(--acc-ring)" }}>
+                {xp >= next.xp ? "відкрито" : `ще ${fmt(next.xp - xp)} XP`}
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full" style={{ background: C.line }}>
+              <motion.div className="h-full" style={{ background: "var(--acc)" }} initial={false} animate={{ width: `${view < myRoom ? 100 : locked ? 0 : pct}%` }} />
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-between gap-2 text-[14px]">
+            <b>Усі кімнати відкриті</b>
+            <span style={{ color: C.muted }}>Далі — титул «Легенда».</span>
+          </div>
+        )}
+      </At>
+
+      <At x={20} r={20} y={594} className="grid grid-cols-2 gap-3">
+        {["Улюбленці", "Декор"].map((t, i) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => {
+              sfx("tap");
+              onShop(i === 0 ? 1 : 2);
+            }}
+            className="arc-secondary h-12 rounded-xl border text-[15px] font-semibold outline-none"
+            style={{ borderColor: C.line, background: "transparent", color: C.text }}
+          >
+            {t}
+          </button>
+        ))}
+      </At>
+
+      <Cta onClick={sit} disabled={locked}>
+        {locked ? "Кімната ще закрита" : "Сісти за комп’ютер"}
+      </Cta>
+      <span className="absolute left-0 right-0 top-[744px] text-center text-[12px]" style={{ color: C.muted }}>
+        свайп ← → по кімнатах
+      </span>
+    </div>
+  );
+}
