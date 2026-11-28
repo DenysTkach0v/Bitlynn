@@ -2,7 +2,7 @@
 # 1) збирає застосунок, якщо код змінився (з повтором, бо збірка тягне шрифти з інтернету);
 # 2) якщо збірка не вдалась — запускає режим розробки (працює і з поганим інтернетом);
 # 3) відкриває окреме вікно розміром із телефон; коли його закрити — сервер зупиняється.
-# Журнал: %LOCALAPPDATA%\Bitlynn\launcher.log
+# Журнали: %LOCALAPPDATA%\Bitlynn\launcher.log (кроки), build.log (збірка), server.log (сервер)
 
 $ErrorActionPreference = "Stop"
 $Port = 3123
@@ -13,16 +13,27 @@ $Host.UI.RawUI.WindowTitle = "Bitlynn"
 $dataDir = Join-Path $env:LOCALAPPDATA "Bitlynn"
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 $log = Join-Path $dataDir "launcher.log"
-"=== $(Get-Date -Format s) · $PSScriptRoot" | Out-File -FilePath $log -Encoding utf8
+$buildLog = Join-Path $dataDir "build.log"
+$serverLog = Join-Path $dataDir "server.log"
+try { "=== $(Get-Date -Format s) · $PSScriptRoot" | Out-File -FilePath $log -Encoding utf8 } catch {}
 
 function Say($text) {
     Write-Host $text
-    $text | Out-File -FilePath $log -Append -Encoding utf8
+    # the log must never stop the launcher (e.g. file opened elsewhere)
+    try { $text | Out-File -FilePath $log -Append -Encoding utf8 } catch {}
 }
 
 function Fail($text) {
     Say "ПОМИЛКА: $text"
-    Say "Подробиці в журналі: $log"
+    Say "Подробиці: $log, $buildLog, $serverLog"
+    Read-Host "Натисни Enter, щоб закрити"
+    exit 1
+}
+
+# any unexpected error: say it, stop our server, keep the window open
+trap {
+    Say "ПОМИЛКА: $($_.Exception.Message)"
+    if ($server -and -not $server.HasExited) { taskkill /PID $server.Id /T /F | Out-Null }
     Read-Host "Натисни Enter, щоб закрити"
     exit 1
 }
@@ -52,7 +63,7 @@ if (Test-Server) {
     node -e "require.resolve('next/package.json')" 2>$null
     if ($LASTEXITCODE -ne 0) {
         Say "Встановлюю залежності (лише перший раз, кілька хвилин)..."
-        npm install --no-audit --no-fund *>> $log
+        cmd /c "npm install --no-audit --no-fund > `"$buildLog`" 2>&1"
         if ($LASTEXITCODE -ne 0) { Fail "не вдалося встановити залежності (потрібен інтернет)." }
     }
 
@@ -69,7 +80,7 @@ if (Test-Server) {
         $ok = $false
         foreach ($try in 1..2) {
             Say "Збираю Bitlynn (спроба $try, 1–2 хвилини)..."
-            npx next build *>> $log
+            cmd /c "npx next build > `"$buildLog`" 2>&1"
             if ($LASTEXITCODE -eq 0) { $ok = $true; break }
         }
         if (-not $ok) {
@@ -79,7 +90,8 @@ if (Test-Server) {
     }
 
     Say "Запускаю сервер ($mode)..."
-    $server = Start-Process -FilePath "cmd.exe" -ArgumentList "/c npx next $mode -p $Port >> `"$log`" 2>&1" -WindowStyle Hidden -PassThru
+    # the server writes to its own file, so it never locks launcher.log
+    $server = Start-Process -FilePath "cmd.exe" -ArgumentList "/c npx next $mode -p $Port > `"$serverLog`" 2>&1" -WindowStyle Hidden -PassThru
     # dev mode compiles on the first request, give it longer
     $limit = if ($mode -eq "dev") { 180 } else { 90 }
     if (-not (Wait-Server $limit)) { Fail "сервер не відповів за $limit с." }
