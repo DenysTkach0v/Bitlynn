@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { MotionValue, animate, motion, useMotionValue } from "framer-motion";
+import { MotionValue, motion, useMotionValue } from "framer-motion";
 import { sfx } from "@/components/arcade/arcadeAudio";
 import { ANATOMY, HERO_PAL, IDLE, IdleMove } from "./idleConfig";
+import { tween } from "./tween";
 
 /** One sprite pixel on screen. */
 const P = 3;
@@ -35,8 +36,7 @@ export function useIdle(enabled: boolean) {
   return { move, done: () => setMove(null) };
 }
 
-const to = (mv: MotionValue<number>, v: number, ms: number, ease: "easeIn" | "easeOut" | "easeInOut" | "linear" = "easeInOut") =>
-  new Promise<void>((resolve) => animate(mv, v, { duration: ms / 1000, ease, onComplete: resolve }));
+const to = (mv: MotionValue<number>, v: number, ms: number, ease: "easeIn" | "easeOut" | "easeInOut" | "linear" = "easeInOut") => tween(mv, v, ms, ease);
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const block = (x: number, y: number, w: number, h: number, bg: string, extra?: React.CSSProperties): React.CSSProperties => ({

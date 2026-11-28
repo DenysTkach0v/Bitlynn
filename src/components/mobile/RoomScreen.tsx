@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { AnimatePresence, animate, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { C, RANKS, fmt, rankIndexFor } from "@/components/arcade/tokens";
 import { useArcadeStore } from "@/components/arcade/useArcadeStore";
 import { FONT_MONO, FONT_PIXEL, LockIcon } from "@/components/arcade/ui";
@@ -15,6 +15,8 @@ import { Sleeper } from "./Sleeper";
 import { Ambience } from "./Ambience";
 import { IdleActor, useIdle } from "./IdleActor";
 import { HERO_PAL } from "./idleConfig";
+import { HeroSprite } from "./HeroSprite";
+import { tween } from "./tween";
 import { loop } from "./loop";
 import { PixelChair } from "./PixelChair";
 import { HERO_THEMES } from "@/components/arcade/tokens";
@@ -111,9 +113,7 @@ export function RoomScreen({
     setPair({ from: view, to: n, dir: step });
     if (M.panSound) sfx("swish");
     walker.artX.set(0);
-    await new Promise<void>((resolve) =>
-      animate(walker.artX, -step * 390, { duration: M.panMs / 1000, ease: M.easePan, onComplete: resolve })
-    );
+    await tween(walker.artX, -step * 390, M.panMs, M.easePan);
     setView(n);
     setPair(null);
     walker.artX.set(0);
@@ -254,7 +254,8 @@ export function RoomScreen({
                 return;
               }
               sfx("pearl");
-              walker.hop();
+              busy.current = true;
+              scene.jump(walker.bob, [0, -16, 0], 320).then(() => (busy.current = false));
             }}
           >
             <motion.span
@@ -263,7 +264,7 @@ export function RoomScreen({
             >
               <span className="block" style={{ transform: `scaleX(${walker.facing})`, transition: "transform 80ms" }}>
                 <IdleActor move={idle.move} palette={HERO_PAL[hero]} onDone={idle.done}>
-                  <Art name={`hero${ROOMS[heroRoom].id}_${hero}`} />
+                  <HeroSprite theme={hero} frame={walker.frame} />
                 </IdleActor>
               </span>
             </motion.span>

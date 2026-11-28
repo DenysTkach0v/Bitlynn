@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { animate, useMotionValue } from "framer-motion";
 import { sfx } from "@/components/arcade/arcadeAudio";
 import { ROOM_MOTION as M } from "./roomMotion";
+import type { HeroFrame } from "./HeroSprite";
+import { tween } from "./tween";
 
 export const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -19,6 +21,8 @@ export const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export function useRoomWalker(startX: number) {
   const heroX = useMotionValue(startX);
   const bob = useMotionValue(0);
+  /** walk frame of the sprite: which foot is up */
+  const frame = useMotionValue<HeroFrame>("idle");
   const lean = useMotionValue(0);
   const fade = useMotionValue(1);
   const artX = useMotionValue(0);
@@ -27,9 +31,11 @@ export function useRoomWalker(startX: number) {
   const foot = useRef(0);
 
   const oneStep = useCallback(() => {
+    const right = foot.current++ % 2 === 1;
+    frame.set(right ? "stepB" : "stepA");
     animate(bob, [0, -M.stepBobPx, 0], { duration: M.stepMs / 1000, ease: "easeOut" });
-    if (M.stepSound) sfx(foot.current++ % 2 ? "stepR" : "stepL");
-  }, [bob]);
+    if (M.stepSound) sfx(right ? "stepR" : "stepL");
+  }, [bob, frame]);
 
   /** Start the walk cycle in a direction (1 → right, -1 → left). */
   const startSteps = useCallback(
@@ -46,16 +52,15 @@ export function useRoomWalker(startX: number) {
   const stopSteps = useCallback(() => {
     if (stepTimer.current) clearInterval(stepTimer.current);
     stepTimer.current = null;
+    frame.set("idle");
     animate(lean, 0, { duration: 0.12 });
     animate(bob, 0, { duration: 0.08 });
-  }, [lean, bob]);
+  }, [lean, bob, frame]);
 
   /** Walk to x over `ms`; resolves when he arrives. */
   const walkTo = useCallback(
     (x: number, ms: number, ease: [number, number, number, number]) =>
-      new Promise<void>((resolve) => {
-        animate(heroX, x, { duration: ms / 1000, ease, onComplete: resolve });
-      }),
+      tween(heroX, x, ms, ease),
     [heroX]
   );
 
@@ -67,5 +72,5 @@ export function useRoomWalker(startX: number) {
     if (stepTimer.current) clearInterval(stepTimer.current);
   }, []);
 
-  return { heroX, bob, lean, fade, artX, facing, startSteps, stopSteps, walkTo, hop };
+  return { heroX, bob, lean, fade, artX, facing, frame, startSteps, stopSteps, walkTo, hop };
 }

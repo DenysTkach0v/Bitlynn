@@ -1,18 +1,19 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { MotionValue, animate, useMotionValue, useTransform } from "framer-motion";
+import { MotionValue, useMotionValue, useTransform } from "framer-motion";
 import { sfx, haptic } from "@/components/arcade/arcadeAudio";
 import { ROOM_MOTION as M } from "./roomMotion";
 import { BED, DESK, FLOOR_Y, HERO_H, HERO_W, SIT_BELOW_DESK, SIT_SCENE as S, SLEEP } from "./sitScene";
 import { CHAIR, sitOffset } from "./PixelChair";
 import { useRoomWalker } from "./useRoomWalker";
+import { HERO_ANIM } from "./heroAnim";
+// always resolves, even if interrupted or the app is in the background
+import { tween } from "./tween";
 
 type Walker = ReturnType<typeof useRoomWalker>;
-type Ease = "easeIn" | "easeOut" | "easeInOut" | "linear";
 
-const tween = (mv: MotionValue<number>, to: number | number[], ms: number, ease: Ease = "easeOut") =>
-  new Promise<void>((resolve) => animate(mv, to as number, { duration: ms / 1000, ease, onComplete: resolve }));
+
 
 /** Hero top when he stands on the floor. */
 export const HERO_TOP = FLOOR_Y - HERO_H;
@@ -56,6 +57,28 @@ export function useSitScene(walker: Walker) {
   // chairY mirrors chairUp (up = negative y) so the steps think in «height above the floor»
   const chairY = useTransform(chairUp, (v) => -v);
 
+  /**
+   * Any jump, the classic way: crouch (anticipation) → stretch in the air →
+   * squash on landing → a small spring back. Numbers: heroAnim.ts → jump.
+   */
+  const jump = useCallback(
+    async (mv: MotionValue<number>, path: number[], ms: number, onLand?: () => void) => {
+      const J = HERO_ANIM.jump;
+      await tween(squash, J.anticipateScale, J.anticipateMs, "easeOut");
+      await Promise.all([
+        tween(mv, path, ms, "easeOut"),
+        (async () => {
+          await tween(squash, J.stretch, ms * 0.35, "easeOut");
+          await tween(squash, 1, ms * 0.55, "easeIn");
+        })(),
+      ]);
+      onLand?.();
+      await tween(squash, J.landScale, J.landMs, "easeOut");
+      await tween(squash, [J.landScale, J.settleOvershoot, 1], J.settleMs, "easeOut");
+    },
+    [squash]
+  );
+
   /** Put him to bed in a room that has one (instant). Returns false when there is no bed. */
   const sleepIn = useCallback(
     (room: number) => {
@@ -89,10 +112,9 @@ export function useSitScene(walker: Walker) {
     await new Promise((r) => setTimeout(r, SLEEP.blanketOff.ms * 0.45));
     setInBed(false);
     const from = layY.get();
-    await tween(layY, [from, from - S.wakeHopPx, 0], S.wakeMs, "easeInOut");
-    sfx("plop");
+    await jump(layY, [from, from - S.wakeHopPx, 0], S.wakeMs, () => sfx("plop"));
     setTimeout(() => setAlert(false), Math.max(0, S.alertMs - S.wakeMs));
-  }, [asleep, layY]);
+  }, [asleep, layY, jump]);
 
   /** Full scene in room `room`. Resolves when he is up at the keyboard (or right away when skipped). */
   const play = useCallback(
@@ -149,9 +171,7 @@ export function useSitScene(walker: Walker) {
 
       // 6 · hop onto the seat (chair at its lowest)
       sfx("boing");
-      await tween(walker.bob, [0, -S.hopPeakPx - 27, sitOffset(0)], S.hopMs, "easeOut");
-      sfx("plop");
-      await tween(squash, [0.86, 1.06, 1], 160, "easeOut");
+      await jump(walker.bob, [0, -S.hopPeakPx - 27, sitOffset(0)], S.hopMs, () => sfx("plop"));
       if (stop()) return;
 
       // 7 · press the lever — pshhh — the gas lift raises him to the keyboard
@@ -177,7 +197,7 @@ export function useSitScene(walker: Walker) {
       await new Promise((r) => setTimeout(r, S.holdMs));
       await tween(walker.fade, 0, S.fadeMs, "linear");
     },
-    [wake, walker, chairX, chairUp, chairScale, chairRot, chairSquash, lift, lever, squash, swivel]
+    [wake, walker, chairX, chairUp, chairScale, chairRot, chairSquash, lift, lever, swivel, jump]
   );
 
   const skip = useCallback(() => {
@@ -185,6 +205,7 @@ export function useSitScene(walker: Walker) {
   }, []);
 
   return {
+    jump,
     lay,
     layY,
     squash,
